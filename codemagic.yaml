@@ -32,9 +32,3 @@ workflows:
           ./gradlew assembleDebug
     artifacts:
       - frontend/android/app/build/outputs/apk/debug/app-debug.apk
-    publishing:
-      email:
-        recipients: [] # Để trống để nó gửi về email mặc định của tài khoản bạn
-        notify:
-          success: true
-          failure: true
