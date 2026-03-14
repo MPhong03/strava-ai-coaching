@@ -3,16 +3,21 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy các file config từ thư mục backend vào container
+# Copy package files
 COPY backend/package*.json ./
+# Copy prisma schema
 COPY backend/prisma ./prisma/
 
+# Install dependencies
 RUN npm install
+
+# Generate Prisma Client
 RUN npx prisma generate
 
-# Copy toàn bộ code backend vào container
+# Copy the rest of the backend code
 COPY backend/ .
 
+# Build the application
 RUN npm run build
 
 # Stage 2: Run
@@ -20,13 +25,18 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Copy các file đã build từ stage 1
+# Copy necessary files from builder
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 
-# Port 3001 cho NestJS
+# Set environment to production
+ENV NODE_ENV=production
+
+# Port 3001
 EXPOSE 3001
 
-CMD ["npm", "run", "start:prod"]
+# Command to start the app
+# Thêm kiểm tra file để debug nếu cần
+CMD ["node", "dist/main"]
