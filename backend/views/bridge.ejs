@@ -5,26 +5,52 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f9fafb; color: #111827; }
-        .card { background: white; padding: 2rem; border-radius: 1.5rem; shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); text-align: center; max-width: 90%; }
+        .card { background: white; padding: 2rem; border-radius: 1.5rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); text-align: center; max-width: 90%; }
         .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #FC4C02; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 1.5rem; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .btn { background: #FC4C02; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 0.75rem; font-weight: bold; text-decoration: none; display: inline-block; margin-top: 1.5rem; }
+        .btn-secondary { background: #e5e7eb; color: #374151; margin-left: 0.5rem; }
     </style>
 </head>
 <body>
     <div class="card">
         <div class="spinner"></div>
-        <h2>Redirecting to AI Coach...</h2>
+        <h2 id="status">Redirecting...</h2>
         <p>We've successfully authenticated with Strava.</p>
-        <p style="font-size: 0.875rem; color: #6b7280;">If the app doesn't open automatically, click below:</p>
-        <a id="deep-link" href="com.m_phong.aicoach://callback?code=<%= code %>" class="btn">Open App</a>
+        
+        <div id="mobile-actions" style="display: none;">
+            <p style="font-size: 0.875rem; color: #6b7280;">If the app didn't open automatically, click below:</p>
+            <a id="deep-link" href="com.m_phong.aicoach://callback?code=<%= code %>" class="btn">Open App</a>
+        </div>
+
+        <div id="web-actions" style="display: none;">
+            <p style="font-size: 0.875rem; color: #6b7280;">Returning you to the web dashboard...</p>
+            <a href="<%= frontendUrl %>/auth/strava/callback?code=<%= code %>" class="btn">Continue on Web</a>
+        </div>
     </div>
 
     <script>
-        // Tự động chuyển hướng sau 500ms
-        setTimeout(function() {
-            window.location.href = document.getElementById('deep-link').href;
-        }, 500);
+        const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+        const code = "<%= code %>";
+        const frontendUrl = "<%= frontendUrl %>";
+
+        if (isMobile) {
+            document.getElementById('mobile-actions').style.display = 'block';
+            document.getElementById('status').innerText = 'Opening AI Coach App...';
+            
+            // Tự động kích hoạt Deep Link sau 500ms
+            setTimeout(function() {
+                window.location.href = "com.m_phong.aicoach://callback?code=" + code;
+            }, 500);
+        } else {
+            document.getElementById('web-actions').style.display = 'block';
+            document.getElementById('status').innerText = 'Redirecting to Web...';
+            
+            // Tự động quay lại Web Frontend sau 500ms
+            setTimeout(function() {
+                window.location.href = frontendUrl + "/auth/strava/callback?code=" + code;
+            }, 500);
+        }
     </script>
 </body>
 </html>

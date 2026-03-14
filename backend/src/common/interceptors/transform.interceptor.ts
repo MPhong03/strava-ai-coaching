@@ -19,6 +19,15 @@ export class TransformInterceptor<T>
     context: ExecutionContext,
     next: CallHandler,
   ): Observable<any> {
+    const http = context.switchToHttp();
+    const request = http.getRequest();
+
+    // BỎ QUA Interceptor nếu đây là yêu cầu render giao diện (MVC)
+    // Hoặc nếu kết quả trả về đã được định nghĩa là một view
+    if (request.url.includes('/auth/strava/bridge') || request.url === '/') {
+      return next.handle();
+    }
+
     return next.handle().pipe(
       map((data) => ({
         data: JSON.parse(

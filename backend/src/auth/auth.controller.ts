@@ -1,14 +1,19 @@
 import { Controller, Post, Body, Get, Query, Render } from '@nestjs/common';
 import { StravaAuthService } from './strava-auth.service';
+import { ConfigService } from '@nestjs/config';
 
 @Controller('auth/strava')
 export class AuthController {
-  constructor(private stravaAuthService: StravaAuthService) {}
+  constructor(
+    private stravaAuthService: StravaAuthService,
+    private configService: ConfigService,
+  ) {}
 
   @Get('bridge')
   @Render('bridge')
   async bridge(@Query('code') code: string) {
-    return { code };
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+    return { code, frontendUrl };
   }
 
   @Post('callback')

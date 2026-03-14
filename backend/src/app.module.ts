@@ -10,6 +10,8 @@ import { UserModule } from './user/user.module';
 import { JournalModule } from './journal/journal.module';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
 
 @Module({
   imports: [
@@ -22,7 +24,9 @@ import { TransformInterceptor } from './common/interceptors/transform.intercepto
     UserModule,
     JournalModule,
   ],
+  controllers: [AppController],
   providers: [
+    AppService,
     {
       provide: APP_FILTER,
       useClass: AllExceptionsFilter,

@@ -17,7 +17,7 @@ RUN npx prisma generate
 # Copy the rest of the backend code
 COPY backend/ .
 
-# Build the application
+# Build the application (NestJS sẽ tự động copy views vào dist/views)
 RUN npm run build
 
 # Stage 2: Run
@@ -37,5 +37,5 @@ ENV NODE_ENV=production
 # Port 3001
 EXPOSE 3001
 
-# Command to start the app (Trỏ chính xác vào dist/src/main.js)
+# Command to start the app
 CMD ["node", "dist/src/main.js"]
