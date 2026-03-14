@@ -34,8 +34,7 @@ workflows:
       - frontend/android/app/build/outputs/apk/debug/app-debug.apk
     publishing:
       email:
-        recipients:
-          - ${{ secrets.USER_EMAIL }} # Optional: Set your email in Codemagic vars
+        recipients: [] # Để trống để nó gửi về email mặc định của tài khoản bạn
         notify:
           success: true
           failure: true
