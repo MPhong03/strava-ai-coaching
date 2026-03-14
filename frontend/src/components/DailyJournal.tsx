@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
 import { useAuthStore } from '../store/useAuthStore';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -26,7 +26,7 @@ const DailyJournal: React.FC<Props> = ({ initialDate, readOnly = false }) => {
   const [content, setContent] = useState('');
 
   // Fetch Journal
-  const { isLoading, data } = useQuery({
+  const { isLoading } = useQuery({
     queryKey: ['daily-journal', selectedDate],
     queryFn: async () => {
       const response = await axios.get(`${apiUrl}/journal`, {

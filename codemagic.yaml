@@ -4,9 +4,9 @@ workflows:
     max_build_duration: 30
     instance_type: mac_mini_m1
     environment:
-      node: 20
+      node: 22 # Cập nhật Node.js lên 22 cho Capacitor
       groups:
-        - strava_config # We will define this in Codemagic UI
+        - strava_config
       vars:
         PACKAGE_NAME: "com.m_phong.aicoach"
     scripts:
@@ -23,6 +23,8 @@ workflows:
       - name: Build Web App and Sync Capacitor
         script: |
           cd frontend
+          # CI=false để tránh việc dừng build do cảnh báo (warnings)
+          export CI=false
           npm run build
           npx cap sync android
       - name: Build Android APK
