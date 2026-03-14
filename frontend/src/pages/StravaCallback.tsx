@@ -1,22 +1,20 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuthStore } from '../store/useAuthStore';
-import { Capacitor } from '@capacitor/core';
 
 const StravaCallback: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { setToken, setUser } = useAuthStore();
+  const [status, setStatus] = useState('Completing authentication...');
 
   useEffect(() => {
     const code = searchParams.get('code');
     const apiUrl = process.env.REACT_APP_API_URL;
     
-    const isNative = Capacitor.isNativePlatform();
-    const redirectUri = isNative 
-      ? 'com.m_phong.aicoach://callback' 
-      : process.env.REACT_APP_STRAVA_REDIRECT_URI;
+    // Luôn sử dụng endpoint bridge làm redirect_uri để khớp với bước gửi yêu cầu
+    const redirectUri = `${apiUrl}/auth/strava/bridge`;
 
     if (code) {
       axios
@@ -29,16 +27,18 @@ const StravaCallback: React.FC = () => {
         })
         .catch((error) => {
           console.error('Auth error:', error);
-          navigate('/login');
+          setStatus('Authentication failed. Please try again.');
+          setTimeout(() => navigate('/login'), 3000);
         });
     }
   }, [searchParams, navigate, setToken, setUser]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
-        <p className="text-xl font-semibold">Authenticating with Strava...</p>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-white p-6">
+      <div className="text-center max-w-sm w-full">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-[#FC4C02] mx-auto mb-6"></div>
+        <h2 className="text-xl font-bold text-gray-900 mb-2">{status}</h2>
+        <p className="text-gray-500 text-sm">Please wait a moment while we set up your dashboard.</p>
       </div>
     </div>
   );
