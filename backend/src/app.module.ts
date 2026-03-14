@@ -8,6 +8,7 @@ import { AiModule } from './ai/ai.module';
 import { ReportsModule } from './reports/reports.module';
 import { UserModule } from './user/user.module';
 import { JournalModule } from './journal/journal.module';
+import { ChatModule } from './chat/chat.module';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { AppController } from './app.controller';
@@ -23,6 +24,7 @@ import { AppService } from './app.service';
     ReportsModule,
     UserModule,
     JournalModule,
+    ChatModule,
   ],
   controllers: [AppController],
   providers: [

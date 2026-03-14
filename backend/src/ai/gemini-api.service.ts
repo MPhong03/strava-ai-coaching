@@ -3,7 +3,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 @Injectable()
 export class GeminiApiService {
-  private getClient(apiKey: string) {
+  public getClient(apiKey: string) {
     return new GoogleGenerativeAI(apiKey);
   }
 

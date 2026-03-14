@@ -16,6 +16,7 @@ const ActivityDetail = lazy(() => import('./pages/ActivityDetail'));
 const Reports = lazy(() => import('./pages/Reports'));
 const Profile = lazy(() => import('./pages/Profile'));
 const AiDashboard = lazy(() => import('./pages/AiDashboard'));
+const Chat = lazy(() => import('./pages/Chat'));
 
 const Dashboard: React.FC = () => {
   const { user, token, logout } = useAuthStore();
@@ -58,9 +59,10 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm px-4 sm:px-8 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+      <nav className="bg-white shadow-sm px-4 sm:px-8 py-4 pt-[calc(1rem+var(--safe-area-inset-top))] flex flex-col sm:flex-row justify-between items-center gap-4">
         <h1 className="text-xl font-bold text-orange-600">AI Coach Dashboard</h1>
         <div className="flex flex-wrap justify-center items-center gap-3 sm:gap-6">
+          <Link to="/chat" className="text-sm sm:text-base text-orange-600 hover:text-orange-700 font-bold">AI Partner</Link>
           <Link to="/reports" className="text-sm sm:text-base text-gray-600 hover:text-orange-500 font-medium">Reports</Link>
           <Link to="/ai-dashboard" className="text-sm sm:text-base text-gray-600 hover:text-orange-500 font-medium">AI Usage</Link>
           <Link to="/profile" className="text-sm sm:text-base text-gray-600 hover:text-orange-500 font-medium">Coach Settings</Link>
@@ -152,7 +154,7 @@ const AppContent: React.FC = () => {
         <Route path="/reports" element={<PrivateRoute><Reports /></PrivateRoute>} />
         <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
         <Route path="/ai-dashboard" element={<PrivateRoute><AiDashboard /></PrivateRoute>} />
-        <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+        <Route path="/chat" element={<PrivateRoute><Chat /></PrivateRoute>} />        <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
       </Routes>
     </Suspense>
   );

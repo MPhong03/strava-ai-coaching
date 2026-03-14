@@ -1,13 +1,14 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { GeminiApiService } from '../ai/gemini-api.service';
-import { EncryptionUtil } from '../common/utils/encryption.util';
+import { GeminiLoadBalancer } from '../ai/gemini-load-balancer.service';
 
 @Injectable()
 export class ReportsService {
   constructor(
     private prisma: PrismaService,
     private geminiApi: GeminiApiService,
+    private loadBalancer: GeminiLoadBalancer,
   ) {}
 
   async getPerformanceReport(userId: bigint, startDateStr?: string, endDateStr?: string, generate = false) {
@@ -32,7 +33,7 @@ export class ReportsService {
 
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { preferences: true, gemini_api_key: true }
+      select: { preferences: true }
     });
 
     let report = await this.prisma.performanceReport.findUnique({
@@ -103,25 +104,20 @@ export class ReportsService {
       used: usageCount,
       total: 5,
       remaining: Math.max(0, 5 - usageCount),
-      hasKey: !!user?.gemini_api_key
     };
 
     if (!generate) {
       return { report, limit: limitInfo };
     }
 
-    if (!user?.gemini_api_key) {
-      throw new BadRequestException('Vui lòng cấu hình Gemini API Key trong phần Coach Settings để sử dụng tính năng này.');
-    }
-
     if (usageCount >= 5) {
       throw new Error('Bạn đã hết lượt gọi AI cho báo cáo này trong tuần này (Tối đa 5 lần/tuần).');
     }
 
-    const encryptionKey = process.env.ENCRYPTION_KEY!;
-    const decryptedApiKey = EncryptionUtil.decrypt(user.gemini_api_key, encryptionKey);
+    // Load Balance Selection
+    const selectedKey = await this.loadBalancer.getBestKey(userId);
 
-    const preferences = user.preferences ? JSON.parse(user.preferences) : null;
+    const preferences = user?.preferences ? JSON.parse(user.preferences) : null;
     const summary = activities.map((a) => ({
       date: a.start_date,
       distance: (a.distance / 1000).toFixed(2) + ' km',
@@ -142,31 +138,36 @@ export class ReportsService {
       ...
     `;
 
-    const aiResult = await this.geminiApi.generateText(prompt, decryptedApiKey);
+    try {
+      const aiResult = await this.geminiApi.generateText(prompt, selectedKey.key);
 
-    await this.prisma.aiUsageLog.create({
-      data: { user_id: userId, type: 'REPORT', target_id: targetId }
-    });
+      await this.prisma.aiUsageLog.create({
+        data: { user_id: userId, type: 'REPORT', target_id: targetId }
+      });
 
-    await this.prisma.geminiUsage.create({
-      data: {
-        user_id: userId,
-        type: 'REPORT',
-        model_name: aiResult.model,
-        prompt_tokens: aiResult.usage?.promptTokenCount || 0,
-        candidate_tokens: aiResult.usage?.candidatesTokenCount || 0,
-        total_tokens: aiResult.usage?.totalTokenCount || 0,
-      }
-    });
+      await this.prisma.geminiUsage.create({
+        data: {
+          user_id: userId,
+          type: 'REPORT',
+          model_name: aiResult.model,
+          prompt_tokens: aiResult.usage?.promptTokenCount || 0,
+          candidate_tokens: aiResult.usage?.candidatesTokenCount || 0,
+          total_tokens: aiResult.usage?.totalTokenCount || 0,
+        }
+      });
 
-    const updatedReport = await this.prisma.performanceReport.update({
-      where: { id: report.id },
-      data: { trend_insight: aiResult.text, last_generated_at: new Date() }
-    });
+      const updatedReport = await this.prisma.performanceReport.update({
+        where: { id: report.id },
+        data: { trend_insight: aiResult.text, last_generated_at: new Date() }
+      });
 
-    return { 
-      report: updatedReport, 
-      limit: { ...limitInfo, used: usageCount + 1, remaining: 5 - (usageCount + 1) } 
-    };
+      return { 
+        report: updatedReport, 
+        limit: { ...limitInfo, used: usageCount + 1, remaining: 5 - (usageCount + 1) } 
+      };
+    } catch (error) {
+      await this.loadBalancer.reportError(selectedKey.id, error);
+      throw error;
+    }
   }
 }

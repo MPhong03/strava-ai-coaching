@@ -2,6 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  /* Hỗ trợ khoảng trống cho thanh trạng thái trên điện thoại */
+  --safe-area-inset-top: env(safe-area-inset-top, 0px);
+}
+
+.pt-safe {
+  padding-top: var(--safe-area-inset-top);
+}
+
+.mt-safe {
+  margin-top: var(--safe-area-inset-top);
+}
+
 /* Custom styling for Markdown Tables */
 .prose table {
   width: 100%;

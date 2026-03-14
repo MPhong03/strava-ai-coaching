@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Param, UseGuards, Request } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { UserService } from './user.service';
 
@@ -20,8 +20,26 @@ export class UserController {
   }
 
   @Post('gemini-key')
-  async updateGeminiKey(@Request() req: any, @Body('key') key: string) {
+  async addGeminiKey(@Request() req: any, @Body('key') key: string) {
     const userId = BigInt(req.user.userId);
-    return this.userService.updateGeminiKey(userId, key);
+    return this.userService.addGeminiKey(userId, key);
+  }
+
+  @Delete('gemini-key/:id')
+  async deleteGeminiKey(@Request() req: any, @Param('id') id: string) {
+    const userId = BigInt(req.user.userId);
+    return this.userService.deleteGeminiKey(userId, BigInt(id));
+  }
+
+  @Post('round-robin')
+  async toggleRoundRobin(@Request() req: any, @Body('enabled') enabled: boolean) {
+    const userId = BigInt(req.user.userId);
+    return this.userService.toggleRoundRobin(userId, enabled);
+  }
+
+  @Post('profile-update')
+  async updateProfile(@Request() req: any, @Body() data: any) {
+    const userId = BigInt(req.user.userId);
+    return this.userService.updateProfile(userId, data);
   }
 }

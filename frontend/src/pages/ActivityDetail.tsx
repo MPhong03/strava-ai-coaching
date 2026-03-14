@@ -102,7 +102,7 @@ const ActivityDetail: React.FC = () => {
   const limit = insightData?.limit;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-8">
+    <div className="min-h-screen bg-gray-50 p-4 sm:p-8 pt-[calc(1rem+var(--safe-area-inset-top))]">
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-6">
           <Link to="/" className="text-orange-500 hover:text-orange-600 font-medium">

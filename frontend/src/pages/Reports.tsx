@@ -129,7 +129,7 @@ const Reports: React.FC = () => {
   const limit = reportData?.limit;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-8">
+    <div className="min-h-screen bg-gray-50 p-4 sm:p-8 pt-[calc(1rem+var(--safe-area-inset-top))]">
       <div className="max-w-7xl mx-auto">
         <Link to="/" className="text-orange-500 hover:text-orange-600 mb-4 sm:mb-6 inline-block font-medium text-sm sm:text-base">
           &larr; Back to Dashboard

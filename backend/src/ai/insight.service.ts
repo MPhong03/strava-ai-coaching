@@ -1,13 +1,14 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { GeminiApiService } from './gemini-api.service';
-import { EncryptionUtil } from '../common/utils/encryption.util';
+import { GeminiLoadBalancer } from './gemini-load-balancer.service';
 
 @Injectable()
 export class InsightService {
   constructor(
     private prisma: PrismaService,
     private geminiApi: GeminiApiService,
+    private loadBalancer: GeminiLoadBalancer,
   ) {}
 
   async getInsight(activityId: bigint, userId: bigint, generate = false) {
@@ -15,7 +16,7 @@ export class InsightService {
       where: { id: activityId, user_id: userId },
       include: { 
         insight: true,
-        user: { select: { preferences: true, gemini_api_key: true } }
+        user: { select: { preferences: true } }
       },
     });
 
@@ -39,7 +40,6 @@ export class InsightService {
       used: usageCount,
       total: 3,
       remaining: Math.max(0, 3 - usageCount),
-      hasKey: !!activity.user.gemini_api_key
     };
 
     if (!generate && activity.insight) {
@@ -50,17 +50,12 @@ export class InsightService {
       return { insight: null, limit: limitInfo };
     }
 
-    // Generate logic
-    if (!activity.user.gemini_api_key) {
-      throw new BadRequestException('Vui lòng cấu hình Gemini API Key trong phần Coach Settings để sử dụng tính năng này.');
-    }
-
     if (usageCount >= 3) {
       throw new Error('Bạn đã hết lượt gọi AI cho bài chạy này trong hôm nay (Tối đa 3 lần/ngày).');
     }
 
-    const encryptionKey = process.env.ENCRYPTION_KEY!;
-    const decryptedApiKey = EncryptionUtil.decrypt(activity.user.gemini_api_key, encryptionKey);
+    // Load Balance Selection
+    const selectedKey = await this.loadBalancer.getBestKey(userId);
 
     const preferences = activity.user.preferences ? JSON.parse(activity.user.preferences) : null;
     const dateKey = activity.start_date.toISOString().split('T')[0];
@@ -76,43 +71,48 @@ export class InsightService {
       daily_journal: journal?.content || 'Không có ghi chép gì thêm cho ngày này.'
     };
 
-    const aiResult = await this.geminiApi.generateInsight(context, preferences, decryptedApiKey);
+    try {
+      const aiResult = await this.geminiApi.generateInsight(context, preferences, selectedKey.key);
 
-    // Log Usage & Token
-    await this.prisma.aiUsageLog.create({
-      data: { user_id: userId, type: 'ACTIVITY', target_id: activityId.toString() }
-    });
+      // Log Usage
+      await this.prisma.aiUsageLog.create({
+        data: { user_id: userId, type: 'ACTIVITY', target_id: activityId.toString() }
+      });
 
-    await this.prisma.geminiUsage.create({
-      data: {
-        user_id: userId,
-        type: 'ACTIVITY',
-        model_name: aiResult.model,
-        prompt_tokens: aiResult.usage?.promptTokenCount || 0,
-        candidate_tokens: aiResult.usage?.candidatesTokenCount || 0,
-        total_tokens: aiResult.usage?.totalTokenCount || 0,
-      }
-    });
+      await this.prisma.geminiUsage.create({
+        data: {
+          user_id: userId,
+          type: 'ACTIVITY',
+          model_name: aiResult.model,
+          prompt_tokens: aiResult.usage?.promptTokenCount || 0,
+          candidate_tokens: aiResult.usage?.candidatesTokenCount || 0,
+          total_tokens: aiResult.usage?.totalTokenCount || 0,
+        }
+      });
 
-    const updatedInsight = await this.prisma.insight.upsert({
-      where: { activity_id: activityId },
-      update: {
-        praise: aiResult.data.praise,
-        improvement: aiResult.data.improvement,
-        warning: aiResult.data.warning,
-      },
-      create: {
-        activity_id: activityId,
-        user_id: userId,
-        praise: aiResult.data.praise,
-        improvement: aiResult.data.improvement,
-        warning: aiResult.data.warning,
-      },
-    });
+      const updatedInsight = await this.prisma.insight.upsert({
+        where: { activity_id: activityId },
+        update: {
+          praise: aiResult.data.praise,
+          improvement: aiResult.data.improvement,
+          warning: aiResult.data.warning,
+        },
+        create: {
+          activity_id: activityId,
+          user_id: userId,
+          praise: aiResult.data.praise,
+          improvement: aiResult.data.improvement,
+          warning: aiResult.data.warning,
+        },
+      });
 
-    return { 
-      insight: updatedInsight, 
-      limit: { ...limitInfo, used: usageCount + 1, remaining: 3 - (usageCount + 1) } 
-    };
+      return { 
+        insight: updatedInsight, 
+        limit: { ...limitInfo, used: usageCount + 1, remaining: 3 - (usageCount + 1) } 
+      };
+    } catch (error) {
+      await this.loadBalancer.reportError(selectedKey.id, error);
+      throw error;
+    }
   }
 }
