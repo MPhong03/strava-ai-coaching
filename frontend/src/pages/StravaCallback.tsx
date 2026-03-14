@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuthStore } from '../store/useAuthStore';
+import { Capacitor } from '@capacitor/core';
 
 const StravaCallback: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -11,10 +12,15 @@ const StravaCallback: React.FC = () => {
   useEffect(() => {
     const code = searchParams.get('code');
     const apiUrl = process.env.REACT_APP_API_URL;
+    
+    const isNative = Capacitor.isNativePlatform();
+    const redirectUri = isNative 
+      ? 'com.m_phong.aicoach://callback' 
+      : process.env.REACT_APP_STRAVA_REDIRECT_URI;
 
     if (code) {
       axios
-        .post(`${apiUrl}/auth/strava/callback`, { code })
+        .post(`${apiUrl}/auth/strava/callback`, { code, redirect_uri: redirectUri })
         .then((response) => {
           const { user, token } = response.data.data;
           setToken(token);

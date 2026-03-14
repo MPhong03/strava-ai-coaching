@@ -11,10 +11,11 @@ export class StravaAuthService {
     private jwtService: JwtService,
   ) {}
 
-  async validateStravaCode(code: string) {
+  async validateStravaCode(code: string, redirectUri?: string) {
     const clientId = process.env.STRAVA_CLIENT_ID;
     const clientSecret = process.env.STRAVA_CLIENT_SECRET;
     const encryptionKey = process.env.ENCRYPTION_KEY;
+    const defaultRedirectUri = process.env.STRAVA_REDIRECT_URI;
 
     if (!clientId || !clientSecret || !encryptionKey) {
       throw new Error('Strava configuration missing in environment');
@@ -26,6 +27,7 @@ export class StravaAuthService {
         client_secret: clientSecret,
         code,
         grant_type: 'authorization_code',
+        redirect_uri: redirectUri || defaultRedirectUri, // Sử dụng redirectUri từ frontend nếu có
       });
 
       const {

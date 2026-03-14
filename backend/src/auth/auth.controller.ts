@@ -6,7 +6,7 @@ export class AuthController {
   constructor(private stravaAuthService: StravaAuthService) {}
 
   @Post('callback')
-  async callback(@Body('code') code: string) {
-    return this.stravaAuthService.validateStravaCode(code);
+  async callback(@Body() body: { code: string; redirect_uri?: string }) {
+    return this.stravaAuthService.validateStravaCode(body.code, body.redirect_uri);
   }
 }
