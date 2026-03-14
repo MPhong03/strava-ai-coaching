@@ -20,9 +20,6 @@ COPY backend/ .
 # Build the application
 RUN npm run build
 
-# List files to verify build output
-RUN ls -la dist/
-
 # Stage 2: Run
 FROM node:20-alpine
 
@@ -40,5 +37,5 @@ ENV NODE_ENV=production
 # Port 3001
 EXPOSE 3001
 
-# Debug: Show files before running
-CMD ls -la dist/ && node dist/main.js
+# Command to start the app (Trỏ chính xác vào dist/src/main.js)
+CMD ["node", "dist/src/main.js"]
