@@ -1,5 +1,5 @@
-import React, { Suspense, lazy } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
+import React, { Suspense, lazy, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, Link, useNavigate } from 'react-router-dom';
 import Login from './pages/Login';
 import StravaCallback from './pages/StravaCallback';
 import { useAuthStore } from './store/useAuthStore';
@@ -8,6 +8,8 @@ import DailyJournal from './components/DailyJournal';
 import axios from 'axios';
 import { useQueryClient } from '@tanstack/react-query';
 import toast, { Toaster } from 'react-hot-toast';
+import { App as CapacitorApp } from '@capacitor/app';
+import { Browser } from '@capacitor/browser';
 
 // Lazy loading heavy pages
 const ActivityDetail = lazy(() => import('./pages/ActivityDetail'));
@@ -117,21 +119,50 @@ const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   return token ? <>{children}</> : <Navigate to="/login" />;
 };
 
+// Component chính xử lý Deep Linking
+const AppContent: React.FC = () => {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Lắng nghe sự kiện mở App qua URL (Deep Link)
+    CapacitorApp.addListener('appUrlOpen', (data: any) => {
+      // Ví dụ URL: com.m_phong.aicoach://callback?code=abc123...
+      const url = new URL(data.url);
+      const code = url.searchParams.get('code');
+      
+      if (code) {
+        // Đóng trình duyệt in-app (nếu đang mở)
+        Browser.close();
+        // Chuyển hướng đến trang callback với mã code nhận được
+        navigate(`/auth/strava/callback?code=${code}`);
+      }
+    });
+
+    return () => {
+      CapacitorApp.removeAllListeners();
+    };
+  }, [navigate]);
+
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-gray-400">Loading...</div>}>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/auth/strava/callback" element={<StravaCallback />} />
+        <Route path="/activity/:id" element={<PrivateRoute><ActivityDetail /></PrivateRoute>} />
+        <Route path="/reports" element={<PrivateRoute><Reports /></PrivateRoute>} />
+        <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
+        <Route path="/ai-dashboard" element={<PrivateRoute><AiDashboard /></PrivateRoute>} />
+        <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+      </Routes>
+    </Suspense>
+  );
+};
+
 function App() {
   return (
     <Router>
       <Toaster position="bottom-right" reverseOrder={false} />
-      <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-gray-400">Loading...</div>}>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/auth/strava/callback" element={<StravaCallback />} />
-          <Route path="/activity/:id" element={<PrivateRoute><ActivityDetail /></PrivateRoute>} />
-          <Route path="/reports" element={<PrivateRoute><Reports /></PrivateRoute>} />
-          <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
-          <Route path="/ai-dashboard" element={<PrivateRoute><AiDashboard /></PrivateRoute>} />
-          <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-        </Routes>
-      </Suspense>
+      <AppContent />
     </Router>
   );
 }
