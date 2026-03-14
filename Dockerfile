@@ -17,8 +17,12 @@ RUN npx prisma generate
 # Copy the rest of the backend code
 COPY backend/ .
 
-# Build the application (NestJS sẽ tự động copy views vào dist/views)
+# Build the application
 RUN npm run build
+
+# --- FIX: Đảm bảo thư mục views tồn tại trong dist ---
+# Copy thủ công vào dist nếu nest build bỏ qua
+RUN mkdir -p dist/views && cp -r views/* dist/views/ || true
 
 # Stage 2: Run
 FROM node:20-alpine

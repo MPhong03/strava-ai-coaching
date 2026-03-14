@@ -2,7 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
-import { existsSync } from 'fs';
+import { existsSync, readdirSync } from 'fs';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -14,26 +14,28 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // Tìm thư mục views ở nhiều vị trí khả thi để đảm bảo luôn hoạt động
-  const possiblePaths = [
-    join(__dirname, '..', 'views'),       // Trong dist (nếu nest-cli copy thành công)
-    join(process.cwd(), 'views'),         // Ở gốc thư mục đang chạy (local dev)
-    join(process.cwd(), 'backend', 'views') // Ở gốc monorepo
-  ];
-
-  let viewsPath = possiblePaths[0];
-  for (const path of possiblePaths) {
-    if (existsSync(path)) {
-      viewsPath = path;
-      break;
+  // Đường dẫn chuẩn NestJS sau khi biên dịch (dist/views)
+  // __dirname thường là dist/src, nên .. là dist/
+  const viewsPath = join(__dirname, '..', 'views');
+  
+  console.log(`__dirname: ${__dirname}`);
+  console.log(`process.cwd(): ${process.cwd()}`);
+  
+  if (existsSync(viewsPath)) {
+    console.log(`Views directory found at: ${viewsPath}`);
+    console.log('Contents:', readdirSync(viewsPath));
+  } else {
+    console.error(`ERROR: Views directory NOT found at: ${viewsPath}`);
+    // Dự phòng tìm ở process.cwd()
+    const fallbackPath = join(process.cwd(), 'views');
+    console.log(`Checking fallback path: ${fallbackPath}`);
+    if (existsSync(fallbackPath)) {
+      console.log('Fallback path exists!');
     }
   }
 
   app.setBaseViewsDir(viewsPath);
   app.setViewEngine('ejs');
-  
-  console.log(`Working directory: ${process.cwd()}`);
-  console.log(`Selected Views directory: ${viewsPath}`);
 
   await app.listen(process.env.PORT || 3001, '0.0.0.0');
   const url = await app.getUrl();
