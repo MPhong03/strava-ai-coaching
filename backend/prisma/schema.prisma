@@ -1,0 +1,126 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id                 BigInt              @id @default(autoincrement())
+  email              String              @unique
+  name               String
+  strava_athlete_id  BigInt              @unique
+  profile_picture    String?
+  preferences        String?             @db.Text
+  gemini_api_key     String?             @db.Text
+  created_at         DateTime            @default(now())
+  strava_token       StravaToken?
+  activities         Activity[]
+  insights           Insight[]
+  performanceReports PerformanceReport[]
+  dailyJournals      DailyJournal[]
+  geminiUsages       GeminiUsage[]
+}
+
+model GeminiUsage {
+  id               BigInt   @id @default(autoincrement())
+  user_id          BigInt
+  user             User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  type             String // 'ACTIVITY' hoặc 'REPORT'
+  model_name       String
+  prompt_tokens    Int
+  candidate_tokens Int
+  total_tokens     Int
+  created_at       DateTime @default(now())
+}
+
+model DailyJournal {
+  id         BigInt   @id @default(autoincrement())
+  user_id    BigInt
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  date       DateTime // Chỉ lưu phần ngày (00:00:00)
+  content    String   @db.Text
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@unique([user_id, date])
+}
+
+model StravaToken {
+  id            BigInt   @id @default(autoincrement())
+  user_id       BigInt   @unique
+  user          User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  access_token  String
+  refresh_token String
+  expires_at    DateTime
+  updated_at    DateTime @updatedAt
+}
+
+model Activity {
+  id                   BigInt   @id @default(autoincrement())
+  strava_activity_id   BigInt   @unique
+  user_id              BigInt
+  user                 User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  name                 String
+  type                 String
+  start_date           DateTime
+  distance             Float
+  moving_time          Int
+  average_speed        Float
+  max_speed            Float
+  average_heartrate    Float?
+  max_heartrate        Float?
+  average_cadence      Float?
+  total_elevation_gain Float
+  suffer_score         Int?
+  calories             Float?
+  raw_json             String   @db.Text
+  synced_at            DateTime @default(now())
+  insight              Insight?
+
+  @@index([strava_activity_id])
+}
+
+model Insight {
+  id          BigInt   @id @default(autoincrement())
+  activity_id BigInt   @unique
+  activity    Activity @relation(fields: [activity_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user_id     BigInt
+  user        User     @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  praise      String   @db.Text
+  improvement String   @db.Text
+  warning     String   @db.Text
+  created_at  DateTime @default(now())
+  updated_at  DateTime @default(now()) @updatedAt
+}
+
+model PerformanceReport {
+  id                   BigInt    @id @default(autoincrement())
+  user_id              BigInt
+  user                 User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  start_date           DateTime
+  end_date             DateTime
+  activity_count       Int       @default(0)
+  total_distance       Float
+  total_moving_time    Int
+  total_elevation_gain Float     @default(0)
+  total_calories       Float     @default(0)
+  avg_pace             Float
+  trend_insight        String?   @db.Text
+  last_generated_at    DateTime?
+  created_at           DateTime  @default(now())
+  updated_at           DateTime  @updatedAt
+
+  @@unique([user_id, start_date, end_date])
+}
+
+model AiUsageLog {
+  id         BigInt   @id @default(autoincrement())
+  user_id    BigInt
+  type       String // 'ACTIVITY' hoặc 'REPORT'
+  target_id  String // ID của Activity hoặc 'month-year'
+  created_at DateTime @default(now())
+}

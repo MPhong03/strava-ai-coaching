@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom styling for Markdown Tables */
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 0.875rem;
+  border: 1px solid #e5e7eb; /* gray-200 */
+}
+
+.prose th {
+  background-color: #f9fafb; /* gray-50 */
+  font-weight: 700;
+  border: 1px solid #e5e7eb;
+  padding: 0.75rem;
+  text-align: left;
+}
+
+.prose td {
+  border: 1px solid #e5e7eb;
+  padding: 0.75rem;
+  vertical-align: top;
+}
+
+.prose tr:nth-child(even) {
+  background-color: #fcfcfc;
+}
