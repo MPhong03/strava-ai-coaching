@@ -126,7 +126,7 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     // Lắng nghe sự kiện mở App qua URL (Deep Link)
     CapacitorApp.addListener('appUrlOpen', (data: any) => {
-      // Ví dụ URL: com.m_phong.aicoach://callback?code=abc123...
+      // Ví dụ URL: aicoach://callback?code=abc123...
       const url = new URL(data.url);
       const code = url.searchParams.get('code');
       

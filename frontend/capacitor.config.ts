@@ -7,7 +7,8 @@ const config: CapacitorConfig = {
   bundledWebRuntime: false,
   server: {
     // Cho phép Android app kết nối với Backend Koyeb (HTTPS)
-    allowNavigation: ['*.koyeb.app']
+    allowNavigation: ['*.koyeb.app'],
+    androidScheme: 'aicoach'
   },
   // Cấu hình custom URL scheme cho Deep Linking
   android: {

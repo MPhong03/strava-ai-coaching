@@ -20,7 +20,7 @@
         
         <div id="mobile-actions" style="display: none;">
             <p style="font-size: 0.875rem; color: #6b7280;">If the app didn't open automatically, click below:</p>
-            <a id="deep-link" href="com.m_phong.aicoach://callback?code=<%= code %>" class="btn">Open App</a>
+            <a id="deep-link" href="aicoach://callback?code=<%= code %>" class="btn">Open App</a>
         </div>
 
         <div id="web-actions" style="display: none;">
@@ -40,7 +40,7 @@
             
             // Tự động kích hoạt Deep Link sau 500ms
             setTimeout(function() {
-                window.location.href = "com.m_phong.aicoach://callback?code=" + code;
+                window.location.href = "aicoach://callback?code=" + code;
             }, 500);
         } else {
             document.getElementById('web-actions').style.display = 'block';
