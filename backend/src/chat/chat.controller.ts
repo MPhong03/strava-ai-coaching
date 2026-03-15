@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Body, Query, UseGuards, Request, Sse } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, UseGuards, Request, Sse, Res } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ChatService } from './chat.service';
 import { Observable, map, filter } from 'rxjs';
+import type { Response } from 'express';
 
 @Controller('chat')
 @UseGuards(AuthGuard('jwt'))
@@ -27,9 +28,31 @@ export class ChatController {
   async sendMessage(
     @Request() req: any,
     @Body() body: { sessionId: string; message: string },
+    @Res() res: Response,
   ) {
     const userId = BigInt(req.user.userId);
-    return this.chatService.sendMessage(userId, BigInt(body.sessionId), body.message);
+    
+    // Thiết lập header cho Streaming
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Transfer-Encoding', 'chunked');
+
+    try {
+      await this.chatService.sendMessage(
+        userId, 
+        BigInt(body.sessionId), 
+        body.message,
+        (chunk) => {
+          res.write(chunk); // Gửi từng phần về client
+        }
+      );
+      res.end(); // Kết thúc stream
+    } catch (error) {
+      if (!res.headersSent) {
+        res.status(500).send(error.message);
+      } else {
+        res.end();
+      }
+    }
   }
 
   @Sse('status/:sessionId')

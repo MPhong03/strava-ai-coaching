@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuthStore } from '../store/useAuthStore';
-import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import toast from 'react-hot-toast';
@@ -21,6 +21,8 @@ const Chat: React.FC = () => {
   const queryClient = useQueryClient();
   const [input, setInput] = useState('');
   const [aiStatus, setAiStatus] = useState<{ status: string, toolName?: string }>({ status: 'idle' });
+  const [streamingContent, setStreamingContent] = useState(''); // Nội dung AI đang stream về
+  const [optimisticUserMessage, setOptimisticUserMessage] = useState<string | null>(null); // Tin nhắn user gửi đi
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Fetch Session
@@ -45,7 +47,7 @@ const Chat: React.FC = () => {
     };
     eventSource.onerror = () => eventSource.close();
     return () => eventSource.close();
-  }, [session?.id, apiUrl]);
+  }, [session?.id, apiUrl, token]);
 
   // Fetch History
   const {
@@ -70,72 +72,109 @@ const Chat: React.FC = () => {
     enabled: !!session?.id
   });
 
-  // Mutation for sending message
-  const mutation = useMutation({
-    mutationFn: async (message: string) => {
-      const response = await axios.post(`${apiUrl}/chat/message`, 
-        { sessionId: session.id, message },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      return response.data.data;
-    },
-    onMutate: async () => {
-      await queryClient.cancelQueries({ queryKey: ['chat-history', session?.id] });
-      setAiStatus({ status: 'thinking' });
-      scrollToBottom();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['chat-history', session?.id] });
-      queryClient.invalidateQueries({ queryKey: ['ai-usage'] });
+  const [isSending, setIsSending] = useState(false);
+
+  const handleSend = async () => {
+    if (!input.trim() || isSending) return;
+    
+    const userMessage = input;
+    setInput('');
+    setOptimisticUserMessage(userMessage); // Hiện ngay tin nhắn user
+    setIsSending(true);
+    setStreamingContent(''); // Reset nội dung stream
+    setAiStatus({ status: 'thinking' });
+    scrollToBottom();
+
+    try {
+      const response = await fetch(`${apiUrl}/chat/message`, {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ sessionId: session.id, message: userMessage })
+      });
+
+      if (!response.ok) throw new Error('Failed to send message');
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      
+      if (!reader) throw new Error('No reader available');
+
+      let done = false;
+      let accumulatedContent = '';
+
+      while (!done) {
+        const { value, done: doneReading } = await reader.read();
+        done = doneReading;
+        if (value) {
+          const chunkValue = decoder.decode(value);
+          accumulatedContent += chunkValue;
+          setStreamingContent(accumulatedContent); // Cập nhật nội dung theo chunk
+          scrollToBottom();
+        }
+      }
+
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['chat-history', session?.id] });
+        setOptimisticUserMessage(null);
+        setStreamingContent('');
+        setAiStatus({ status: 'idle' });
+      }, 300);
+
+    } catch (error: any) {
+      toast.error(error.message);
       setAiStatus({ status: 'idle' });
-    },
-    onError: (error: any) => {
-      const msg = error.response?.data?.message || 'Failed to send message';
-      toast.error(msg);
-      setAiStatus({ status: 'idle' });
+    } finally {
+      setIsSending(false);
     }
-  });
+  };
 
   const scrollToBottom = () => {
     setTimeout(() => {
       if (scrollRef.current) {
         scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
       }
-    }, 100);
+    }, 50);
   };
 
   useEffect(() => {
     scrollToBottom();
-  }, [historyData, aiStatus]);
-
-  const handleSend = () => {
-    if (!input.trim() || mutation.isPending) return;
-    mutation.mutate(input);
-    setInput('');
-  };
+  }, [historyData, aiStatus, streamingContent, optimisticUserMessage]);
 
   const messages = historyData?.pages.flatMap(page => page).reverse() || [];
 
   return (
-    <div className="fixed inset-0 bg-gray-50 flex flex-col pt-[calc(var(--safe-area-inset-top))]">
+    <div className="fixed inset-0 bg-gray-50 dark:bg-black flex flex-col pt-[calc(var(--safe-area-inset-top))] transition-colors duration-300">
+      <style>{`
+        @keyframes fadeInChunk {
+          from { opacity: 0.5; transform: translateY(2px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-chunk {
+          animation: fadeInChunk 0.2s ease-out forwards;
+        }
+      `}</style>
+      
       {/* Header */}
-      <nav className="bg-white shadow-sm px-4 sm:px-8 py-4 flex justify-between items-center shrink-0 border-b border-gray-100 z-10">
+      <nav className="bg-white dark:bg-gray-900 shadow-sm px-4 sm:px-8 py-4 flex justify-between items-center shrink-0 border-b border-gray-100 dark:border-gray-800 z-10">
         <div className="flex items-center gap-4">
           <Link to="/" className="text-gray-400 hover:text-orange-500 transition p-1">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
           </Link>
-          <h1 className="text-lg font-bold text-gray-800">AI Partner</h1>
+          <h1 className="text-lg font-black text-gray-800 dark:text-white uppercase tracking-tighter italic">AI Partner</h1>
         </div>
-        <div className="flex items-center gap-2 bg-green-50 px-3 py-1 rounded-full border border-green-100">
+        <div className="flex items-center gap-2 bg-green-50 dark:bg-green-900/20 px-3 py-1 rounded-full border border-green-100 dark:border-green-900/20">
           <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
-          <span className="text-[10px] font-black text-green-600 uppercase tracking-widest">Active</span>
+          <span className="text-[10px] font-black text-green-600 dark:text-green-400 uppercase tracking-widest">Active</span>
         </div>
       </nav>
 
       {/* Chat Area */}
       <div 
         ref={scrollRef}
-        className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-6 bg-[#f8f9fa]"
+        className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-6 bg-[#f8f9fa] dark:bg-black/40 scroll-smooth"
       >
         {hasNextPage && (
           <button 
@@ -147,70 +186,92 @@ const Chat: React.FC = () => {
           </button>
         )}
 
-        {messages.length === 0 && !historyLoading && (
+        {messages.length === 0 && !historyLoading && !optimisticUserMessage && (
           <div className="text-center py-20">
             <div className="w-20 h-20 bg-gradient-to-br from-orange-400 to-orange-600 rounded-[2.5rem] flex items-center justify-center mx-auto mb-6 text-4xl shadow-xl shadow-orange-100">🤖</div>
-            <h3 className="text-xl font-black text-gray-900 mb-2">Hello, runner!</h3>
-            <p className="text-gray-500 text-sm max-w-xs mx-auto font-medium leading-relaxed">
-              I'm your dedicated AI Partner. Ask me anything about your Strava stats or update your daily journal.
+            <h3 className="text-xl font-black text-gray-900 dark:text-white mb-2 uppercase italic tracking-tighter">Hello, runner!</h3>
+            <p className="text-gray-500 text-sm max-w-xs mx-auto font-medium leading-relaxed uppercase tracking-widest text-[10px]">
+              I'm your dedicated AI Partner. Ask me anything about your runs or context.
             </p>
           </div>
         )}
 
+        {/* Messages from History */}
         {messages.map((msg: any) => (
           <div key={msg.id} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-            <div className={`max-w-[90%] sm:max-w-[75%] rounded-2xl px-5 py-4 shadow-sm ${
+            <div className={`max-w-[90%] sm:max-w-[75%] rounded-3xl px-6 py-4 shadow-sm ${
               msg.role === 'user' 
                 ? 'bg-orange-500 text-white rounded-tr-none' 
-                : 'bg-white text-gray-800 rounded-tl-none border border-gray-100'
+                : 'bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 rounded-tl-none border border-gray-100 dark:border-gray-800'
             }`}>
               {msg.tool_logs && (
-                <div className="mb-3 pb-3 border-b border-gray-50">
+                <div className="mb-3 pb-3 border-b border-gray-50 dark:border-gray-800">
                   {JSON.parse(msg.tool_logs).map((log: any, idx: number) => (
-                    <div key={idx} className="flex items-center gap-2 text-[10px] text-gray-400 font-mono mb-1">
-                      <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
-                      <span className="font-bold">EXEC:</span>
-                      <span>{log.tool}</span>
+                    <div key={idx} className="flex items-center gap-2 text-[9px] text-gray-400 dark:text-gray-500 font-black uppercase tracking-widest mb-1">
+                      <span className="w-1.5 h-1.5 bg-orange-400 rounded-full"></span>
+                      <span>EXEC: {log.tool}</span>
                     </div>
                   ))}
                 </div>
               )}
-              <div className="prose prose-sm max-w-none prose-orange">
+              <div className="prose prose-sm max-w-none dark:prose-invert prose-orange font-medium leading-relaxed">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                   {msg.content}
                 </ReactMarkdown>
               </div>
             </div>
-            <div className="text-[9px] mt-1.5 font-bold uppercase tracking-widest text-gray-300 px-1">
+            <div className="text-[9px] mt-2 font-black uppercase tracking-widest text-gray-300 dark:text-gray-700 px-2">
               {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </div>
           </div>
         ))}
 
-        {aiStatus.status !== 'idle' && (
-          <div className="flex flex-col items-start gap-2">
-            <div className="bg-white border border-gray-100 rounded-2xl rounded-tl-none px-5 py-4 shadow-sm flex flex-col gap-3">
-              <div className="flex items-center gap-3">
-                <div className="flex gap-1">
-                  <div className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-bounce"></div>
-                  <div className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-bounce [animation-delay:0.2s]"></div>
-                  <div className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-bounce [animation-delay:0.4s]"></div>
-                </div>
-                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                  {aiStatus.status === 'thinking' ? 'AI is thinking...' : `Calling ${aiStatus.toolName}...`}
-                </span>
+        {/* Optimistic User Message */}
+        {optimisticUserMessage && (
+          <div className="flex flex-col items-end animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <div className="max-w-[90%] sm:max-w-[75%] rounded-3xl px-6 py-4 shadow-sm bg-orange-500 text-white rounded-tr-none">
+              <div className="prose prose-sm max-w-none prose-invert font-medium">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {optimisticUserMessage}
+                </ReactMarkdown>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* AI Stream Content with Chunk Animation */}
+        {(aiStatus.status !== 'idle' || streamingContent) && (
+          <div className="flex flex-col items-start gap-2">
+            <div className={`max-w-[90%] sm:max-w-[75%] rounded-3xl px-6 py-4 shadow-sm bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 rounded-tl-none border border-gray-100 dark:border-gray-800 ${streamingContent ? 'animate-chunk' : ''}`}>
+              {streamingContent ? (
+                <div className="prose prose-sm max-w-none dark:prose-invert prose-orange font-medium leading-relaxed">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {streamingContent}
+                  </ReactMarkdown>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <div className="flex gap-1.5">
+                    <div className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-bounce"></div>
+                    <div className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-bounce [animation-delay:0.2s]"></div>
+                    <div className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-bounce [animation-delay:0.4s]"></div>
+                  </div>
+                  <span className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">
+                    {aiStatus.status === 'thinking' ? 'AI is thinking...' : `Accessing ${aiStatus.toolName}...`}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         )}
       </div>
 
       {/* Input Area */}
-      <div className="p-4 sm:p-6 bg-white border-t border-gray-100 shrink-0 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-        <div className="max-w-4xl mx-auto flex items-center gap-3">
+      <div className="p-4 sm:p-8 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 shrink-0 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] shadow-2xl transition-all">
+        <div className="max-w-4xl mx-auto flex items-center gap-4">
           <textarea
             rows={1}
-            placeholder="Talk to your partner..."
+            placeholder="Ask your partner something..."
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
@@ -219,14 +280,14 @@ const Chat: React.FC = () => {
                 handleSend();
               }
             }}
-            className="flex-1 bg-gray-50 border-none focus:ring-2 focus:ring-orange-500 rounded-2xl py-3 px-5 text-sm resize-none shadow-inner max-h-32"
+            className="flex-1 bg-gray-50 dark:bg-black border-none focus:ring-2 focus:ring-orange-500 rounded-2xl py-4 px-6 text-sm resize-none shadow-inner max-h-32 dark:text-white transition-all font-medium"
           />
           <button
             onClick={handleSend}
-            disabled={!input.trim() || mutation.isPending}
-            className="w-12 h-12 bg-gray-900 hover:bg-black disabled:bg-gray-100 text-white rounded-2xl flex items-center justify-center transition shadow-lg shrink-0 group active:scale-95"
+            disabled={!input.trim() || isSending}
+            className="w-14 h-14 bg-gray-900 dark:bg-orange-600 hover:scale-105 active:scale-95 disabled:bg-gray-100 dark:disabled:bg-gray-800 text-white rounded-2xl flex items-center justify-center transition-all shadow-xl shrink-0 group"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="rotate-45 -translate-y-0.5 group-hover:translate-x-0.5 transition-transform"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="rotate-45 -translate-y-0.5 group-hover:translate-x-0.5 transition-transform"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
           </button>
         </div>
       </div>

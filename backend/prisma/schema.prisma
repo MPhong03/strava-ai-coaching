@@ -43,12 +43,13 @@ model GeminiApiKey {
 }
 
 model ChatSession {
-  id         BigInt        @id @default(autoincrement())
-  user_id    BigInt
-  user       User          @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  messages   ChatMessage[]
-  created_at DateTime      @default(now())
-  updated_at DateTime      @updatedAt
+  id              BigInt        @id @default(autoincrement())
+  user_id         BigInt
+  user            User          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  messages        ChatMessage[]
+  context_summary String?       @db.Text // Tóm tắt rolling của session (Mid-term Memory)
+  created_at      DateTime      @default(now())
+  updated_at      DateTime      @updatedAt
 }
 
 model ChatMessage {

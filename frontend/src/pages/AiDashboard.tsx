@@ -2,15 +2,8 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { useAuthStore } from '../store/useAuthStore';
-import { Link } from 'react-router-dom';
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 
 const AiDashboard: React.FC = () => {
@@ -20,15 +13,13 @@ const AiDashboard: React.FC = () => {
   const { data: usage, isLoading } = useQuery({
     queryKey: ['ai-usage'],
     queryFn: async () => {
-      const response = await axios.get(`${apiUrl}/ai/usage`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await axios.get(`${apiUrl}/ai/usage`, { headers: { Authorization: `Bearer ${token}` } });
       return response.data.data;
     },
     enabled: !!token,
   });
 
-  if (isLoading) return <div className="p-8 text-center text-gray-400">Loading AI usage stats...</div>;
+  if (isLoading) return <div className="p-8 text-center text-gray-400 font-black uppercase tracking-widest text-[10px]">Loading Intelligence...</div>;
 
   const chartData = usage?.history?.map((h: any) => ({
     date: new Date(h.created_at).toLocaleDateString(),
@@ -37,71 +28,68 @@ const AiDashboard: React.FC = () => {
   })).reverse() || [];
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-8">
-      <div className="max-w-5xl mx-auto">
-        <Link to="/" className="text-orange-500 hover:text-orange-600 mb-6 inline-block font-medium">&larr; Back to Dashboard</Link>
-        <h2 className="text-3xl font-bold mb-8">AI Intelligence Dashboard</h2>
+    <div className="py-6 sm:py-10 px-4 sm:px-8 max-w-5xl mx-auto pb-32 lg:pb-10">
+      <h2 className="text-3xl sm:text-4xl font-black mb-10 tracking-tighter uppercase italic dark:text-white">AI Intelligence</h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Today's Consumption</p>
-            <p className="text-3xl font-black text-gray-900">{usage?.daily?.tokens.toLocaleString()} <span className="text-sm font-normal text-gray-400">tokens</span></p>
-            <p className="text-xs text-gray-500 mt-2">{usage?.daily?.calls} AI Coach requests today</p>
-          </div>
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Monthly Consumption</p>
-            <p className="text-3xl font-black text-orange-600">{usage?.monthly?.tokens.toLocaleString()} <span className="text-sm font-normal text-gray-400">tokens</span></p>
-            <p className="text-xs text-gray-500 mt-2">{usage?.monthly?.calls} AI Coach requests this month</p>
-          </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+        <div className="bg-white dark:bg-gray-900 p-6 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800">
+          <p className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">Today's Consumption</p>
+          <p className="text-3xl font-black dark:text-white">{usage?.daily?.tokens.toLocaleString()} <span className="text-xs font-bold text-gray-400">tokens</span></p>
+          <p className="text-[10px] font-bold text-green-600 mt-2 uppercase">{usage?.daily?.calls} requests handled</p>
         </div>
-
-        <div className="bg-white p-6 sm:p-8 rounded-xl shadow-sm border border-gray-100 mb-8">
-          <h3 className="text-lg font-bold mb-6">Token Usage History</h3>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="date" hide />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="tokens" fill="#f97316" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+        <div className="bg-white dark:bg-gray-900 p-6 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800">
+          <p className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">Monthly Consumption</p>
+          <p className="text-3xl font-black text-orange-600">{usage?.monthly?.tokens.toLocaleString()} <span className="text-xs font-bold text-gray-400">tokens</span></p>
+          <p className="text-[10px] font-bold text-orange-500 mt-2 uppercase">{usage?.monthly?.calls} requests this month</p>
         </div>
+      </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="px-6 py-4 bg-gray-50 border-b border-gray-100">
-            <h3 className="font-bold text-gray-800">Recent Requests</h3>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="text-[10px] font-black text-gray-400 uppercase tracking-widest bg-white">
-                  <th className="px-6 py-4">Time</th>
-                  <th className="px-6 py-4">Type</th>
-                  <th className="px-6 py-4">Model</th>
-                  <th className="px-6 py-4">Tokens</th>
+      <div className="bg-white dark:bg-gray-900 p-6 sm:p-8 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 mb-10">
+        <h3 className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-8">Token Usage History</h3>
+        <div className="h-64 sm:h-80">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#374151" opacity={0.1} />
+              <XAxis dataKey="date" hide />
+              <YAxis stroke="#9ca3af" fontSize={10} fontWeight="bold" />
+              <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }} />
+              <Bar dataKey="tokens" fill="#f97316" radius={[6, 6, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
+        <div className="px-8 py-5 border-b border-gray-100 dark:border-gray-800">
+          <h3 className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">Recent Requests</h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] bg-gray-50/50 dark:bg-black/20">
+                <th className="px-8 py-4">Time</th>
+                <th className="px-8 py-4">Type</th>
+                <th className="px-8 py-4">Model</th>
+                <th className="px-8 py-4">Tokens</th>
+              </tr>
+            </thead>
+            <tbody className="text-xs divide-y divide-gray-50 dark:divide-gray-800">
+              {usage?.history?.map((h: any) => (
+                <tr key={h.id} className="hover:bg-gray-50 dark:hover:bg-black/40 transition">
+                  <td className="px-8 py-4 whitespace-nowrap text-gray-500 dark:text-gray-400">
+                    {new Date(h.created_at).toLocaleString()}
+                  </td>
+                  <td className="px-8 py-4">
+                    <span className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${h.type === 'ACTIVITY' ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400' : 'bg-orange-50 text-orange-600 dark:bg-orange-900/20 dark:text-orange-400'}`}>
+                      {h.type}
+                    </span>
+                  </td>
+                  <td className="px-8 py-4 font-bold dark:text-gray-200">{h.model_name}</td>
+                  <td className="px-8 py-4 font-mono text-gray-900 dark:text-gray-100">{h.total_tokens}</td>
                 </tr>
-              </thead>
-              <tbody className="text-sm divide-y divide-gray-50">
-                {usage?.history?.map((h: any) => (
-                  <tr key={h.id} className="hover:bg-gray-50 transition">
-                    <td className="px-6 py-4 whitespace-nowrap text-gray-500">
-                      {new Date(h.created_at).toLocaleString()}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2 py-1 rounded-md text-[10px] font-bold ${h.type === 'ACTIVITY' ? 'bg-blue-50 text-blue-600' : 'bg-orange-50 text-orange-600'}`}>
-                        {h.type}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 font-medium text-gray-700">{h.model_name}</td>
-                    <td className="px-6 py-4 font-mono text-gray-900">{h.total_tokens}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

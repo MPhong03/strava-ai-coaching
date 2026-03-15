@@ -51,7 +51,7 @@ export class ChatService {
     });
   }
 
-  async sendMessage(userId: bigint, sessionId: bigint, userMessage: string) {
+  async sendMessage(userId: bigint, sessionId: bigint, userMessage: string, onChunk: (text: string) => void) {
     this.logger.log(`[Session ${sessionId}] Processing new message from User ${userId}`);
     
     const user = await this.prisma.user.findUnique({
@@ -72,34 +72,47 @@ export class ChatService {
       data: { updated_at: new Date() },
     });
 
-    // 2. Chuẩn bị lịch sử cho Gemini
-    const history = await this.prisma.chatMessage.findMany({
-      where: { session_id: sessionId },
-      orderBy: { created_at: 'asc' },
-      take: 50,
+    // 2. Chuẩn bị context window (Hierarchical Memory)
+    const session = await this.prisma.chatSession.findUnique({
+      where: { id: sessionId },
     });
 
-    const contents: Content[] = history.map(msg => ({
+    const shortTermHistory = await this.prisma.chatMessage.findMany({
+      where: { session_id: sessionId },
+      orderBy: { created_at: 'desc' },
+      take: 10,
+    });
+
+    const recentMessages = shortTermHistory.reverse();
+
+    const contents: Content[] = recentMessages.map(msg => ({
       role: msg.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: msg.content || '' }],
     }));
 
-    // System instruction
+    const midTermSummary = session?.context_summary 
+      ? `\n[TÓM TẮT HỘI THOẠI TRƯỚC ĐÓ]: ${session.context_summary}\n` 
+      : '';
+
     const systemInstruction = `
       Bạn là ${user.partner_name || 'AI Partner'}, một cộng sự AI chuyên nghiệp về chạy bộ và sức khỏe.
       Phong cách: ${user.partner_persona || 'Thân thiện, động viên'}.
+      ${midTermSummary}
       Bạn có quyền truy cập vào các công cụ để xem dữ liệu. Luôn xưng hô phù hợp.
+      Bạn đang hỗ trợ người dùng dựa trên dữ liệu Strava và nhật ký tập luyện của họ.
     `;
 
-    // --- BẮT ĐẦU VÒNG LẶP RETRY / FAILOVER ---
+    const messageCount = await this.prisma.chatMessage.count({ where: { session_id: sessionId } });
+    if (messageCount > 0 && messageCount % 10 === 0) {
+      this.summarizeContext(userId, sessionId).catch(err => this.logger.error(`Summarization failed: ${err.message}`));
+    }
+
     let retryCount = 0;
     const maxRetries = 3;
     let lastError: any = null;
 
     while (retryCount < maxRetries) {
       const selectedKey = await this.loadBalancer.getBestKey(userId);
-      this.logger.log(`[Session ${sessionId}] Attempt ${retryCount + 1} using Key ID: ${selectedKey.id}`);
-
       try {
         const genAI = (this.geminiApi as any).getClient(selectedKey.key);
         const model = genAI.getGenerativeModel({ model: 'gemini-3-flash-preview', systemInstruction });
@@ -111,36 +124,52 @@ export class ChatService {
 
         this.status$.next({ sessionId: sessionId.toString(), status: 'thinking' });
 
-        let result = await chat.sendMessage(userMessage);
-        let response = result.response;
+        // Dùng sendMessageStream thay vì sendMessage
+        let result = await chat.sendMessageStream(userMessage);
+        
+        let aiContent = '';
         const toolLogs: any[] = [];
 
-        // Vòng lặp xử lý Function Calling
+        // Xử lý stream đầu tiên (có thể là text hoặc tool call)
+        for await (const chunk of result.stream) {
+          const chunkText = chunk.text();
+          if (chunkText) {
+            aiContent += chunkText;
+            onChunk(chunkText); // Stream về client ngay lập tức
+          }
+        }
+
+        const response = await result.response;
+
+        // Vòng lặp xử lý Function Calling (nếu có)
         let callCount = 0;
-        while (response.candidates?.[0]?.content?.parts?.some((p: any) => p.functionCall) && callCount < 5) {
-          const toolCalls = response.candidates[0].content.parts.filter((p: any) => p.functionCall);
+        let currentResponse = response;
+        while (currentResponse.candidates?.[0]?.content?.parts?.some((p: any) => p.functionCall) && callCount < 5) {
+          const toolCalls = currentResponse.candidates[0].content.parts.filter((p: any) => p.functionCall);
           const toolResultsForAI: any[] = [];
 
           for (const call of toolCalls) {
             const { name, args } = call.functionCall;
             this.status$.next({ sessionId: sessionId.toString(), status: 'calling_tool', toolName: name });
-
             const output = await this.executeTool(userId, name, args);
             toolLogs.push({ tool: name, args, result: output });
-
-            toolResultsForAI.push({
-              functionResponse: { name, response: { content: output } },
-            });
+            toolResultsForAI.push({ functionResponse: { name, response: { content: output } } });
           }
 
-          result = await chat.sendMessage(toolResultsForAI);
-          response = result.response;
+          // Gửi kết quả tool lại AI và tiếp tục stream
+          const toolStreamResult = await chat.sendMessageStream(toolResultsForAI);
+          for await (const chunk of toolStreamResult.stream) {
+            const chunkText = chunk.text();
+            if (chunkText) {
+              aiContent += chunkText;
+              onChunk(chunkText); // Tiếp tục stream text sau khi gọi tool
+            }
+          }
+          currentResponse = await toolStreamResult.response;
           callCount++;
         }
 
-        const aiContent = response.text();
-
-        // Thành công! Lưu tin nhắn Assistant và kết thúc
+        // Lưu kết quả cuối cùng vào DB
         const assistantMsg = await this.prisma.chatMessage.create({
           data: {
             session_id: sessionId,
@@ -150,16 +179,15 @@ export class ChatService {
           },
         });
 
-        // Log usage
-        if (response.usageMetadata) {
+        if (currentResponse.usageMetadata) {
           await this.prisma.geminiUsage.create({
             data: {
               user_id: userId,
               type: 'CHAT',
               model_name: 'gemini-3-flash-preview',
-              prompt_tokens: response.usageMetadata.promptTokenCount || 0,
-              candidate_tokens: response.usageMetadata.candidatesTokenCount || 0,
-              total_tokens: response.usageMetadata.totalTokenCount || 0,
+              prompt_tokens: currentResponse.usageMetadata.promptTokenCount || 0,
+              candidate_tokens: currentResponse.usageMetadata.candidatesTokenCount || 0,
+              total_tokens: currentResponse.usageMetadata.totalTokenCount || 0,
             }
           });
         }
@@ -168,42 +196,15 @@ export class ChatService {
         return assistantMsg;
 
       } catch (error: any) {
-        this.logger.error(`[Session ${sessionId}] Attempt ${retryCount + 1} failed: ${error.message}`);
-        
-        // Báo cáo lỗi cho Load Balancer để đánh dấu Key hỏng/hết hạn
         await this.loadBalancer.reportError(selectedKey.id, error);
-        
         lastError = error;
         retryCount++;
-
-        // Nếu lỗi không phải 429 hoặc không còn key nào, thì không cần retry tiếp
-        if (!error.message?.includes('429') && !error.message?.includes('Quota exceeded')) {
-          break; 
-        }
-        
-        this.logger.warn(`[Session ${sessionId}] 429 Error detected. Retrying with a different key...`);
+        if (!error.message?.includes('429') && !error.message?.includes('Quota exceeded')) break;
       }
     }
 
-    // --- NẾU TẤT CẢ CÁC LẦN THỬ ĐỀU THẤT BẠI ---
     this.status$.next({ sessionId: sessionId.toString(), status: 'idle' });
-
-    if (lastError?.message?.includes('429') || lastError?.message?.includes('Quota exceeded')) {
-      let waitTime = 'vài phút';
-      const match = lastError.message.match(/retry after (\d+[smh])/i) || lastError.message.match(/retry in ([\d\.]+s)/i);
-      if (match) waitTime = match[1];
-
-      const rechargeMessage = `Toàn bộ các cộng sự AI của tôi đều đang cần sạc năng lượng. Chúng ta có thể tiếp tục trò chuyện vào **${waitTime}** tới nhé! ⚡🔋`;
-
-      return await this.prisma.chatMessage.create({
-        data: {
-          session_id: sessionId,
-          role: 'assistant',
-          content: rechargeMessage,
-        },
-      });
-    }
-
+    // Nếu lỗi, fallback về text thông thường hoặc ném lỗi
     throw lastError;
   }
 
@@ -245,6 +246,49 @@ export class ChatService {
     } catch (error) {
       this.logger.error(`[User ${userId}] Tool ${name} failed: ${error.message}`);
       return { error: error.message };
+    }
+  }
+
+  private async summarizeContext(userId: bigint, sessionId: bigint) {
+    this.logger.log(`[Session ${sessionId}] Triggering rolling summarization...`);
+    
+    // Lấy 20 tin nhắn gần nhất để tóm tắt
+    const messages = await this.prisma.chatMessage.findMany({
+      where: { session_id: sessionId },
+      orderBy: { created_at: 'desc' },
+      take: 20,
+    });
+
+    const conversationText = messages.reverse().map(m => `${m.role.toUpperCase()}: ${m.content}`).join('\n');
+
+    const summaryPrompt = `
+      Hãy tóm tắt ngắn gọn (dưới 500 tokens) nội dung cuộc hội thoại dưới đây. 
+      Tập trung vào:
+      1. Mục tiêu tập luyện của người dùng.
+      2. Các vấn đề sức khỏe hoặc chấn thương đang gặp phải (nếu có).
+      3. Sở thích hoặc thói quen chạy bộ.
+      4. Các quyết định hoặc kế hoạch đã chốt trong buổi trò chuyện.
+      
+      Hội thoại:
+      ${conversationText}
+    `;
+
+    try {
+      const selectedKey = await this.loadBalancer.getBestKey(userId);
+      const genAI = (this.geminiApi as any).getClient(selectedKey.key);
+      const model = genAI.getGenerativeModel({ model: 'gemini-3-flash-preview' });
+
+      const result = await model.generateContent(summaryPrompt);
+      const summary = result.response.text();
+
+      await this.prisma.chatSession.update({
+        where: { id: sessionId },
+        data: { context_summary: summary },
+      });
+
+      this.logger.log(`[Session ${sessionId}] Summarization complete.`);
+    } catch (error) {
+      this.logger.error(`[Session ${sessionId}] Summarization failed: ${error.message}`);
     }
   }
 }

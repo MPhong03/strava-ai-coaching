@@ -7,6 +7,10 @@
   --safe-area-inset-top: env(safe-area-inset-top, 0px);
 }
 
+body {
+  @apply bg-gray-50 dark:bg-black transition-colors duration-300;
+}
+
 .pt-safe {
   padding-top: var(--safe-area-inset-top);
 }
@@ -24,6 +28,10 @@
   border: 1px solid #e5e7eb; /* gray-200 */
 }
 
+.dark .prose table {
+  border-color: #374151; /* gray-700 */
+}
+
 .prose th {
   background-color: #f9fafb; /* gray-50 */
   font-weight: 700;
@@ -32,12 +40,27 @@
   text-align: left;
 }
 
+.dark .prose th {
+  background-color: #111827; /* gray-900 */
+  border-color: #374151;
+  color: #f3f4f6;
+}
+
 .prose td {
   border: 1px solid #e5e7eb;
   padding: 0.75rem;
   vertical-align: top;
 }
 
+.dark .prose td {
+  border-color: #374151;
+  color: #d1d5db;
+}
+
 .prose tr:nth-child(even) {
   background-color: #fcfcfc;
+}
+
+.dark .prose tr:nth-child(even) {
+  background-color: #0d0d0d;
 }
