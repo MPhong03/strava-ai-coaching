@@ -16,12 +16,12 @@ import { ReportsService } from '../reports/reports.service';
   imports: [AiModule],
   controllers: [ChatController],
   providers: [
-    ChatService, 
-    ActivitySyncService, 
-    StravaApiService, 
-    JournalService, 
-    UserService, 
-    ReportsService
+    ChatService,
+    ActivitySyncService,
+    StravaApiService,
+    JournalService,
+    UserService,
+    ReportsService,
   ],
 })
 export class ChatModule {}

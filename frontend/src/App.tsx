@@ -44,7 +44,7 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <main className="py-6 sm:py-10 px-4 sm:px-8 max-w-full overflow-x-hidden">
+    <main className="py-6 sm:py-10 px-4 sm:px-8 max-w-full overflow-x-hidden pb-32">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tighter uppercase italic text-orange-600">Runs Log</h2>
       </div>

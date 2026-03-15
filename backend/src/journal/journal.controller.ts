@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, Query, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Query,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { JournalService } from './journal.service';
 
@@ -14,7 +22,10 @@ export class JournalController {
   }
 
   @Post()
-  async upsertJournal(@Request() req: any, @Body() body: { date: string; content: string }) {
+  async upsertJournal(
+    @Request() req: any,
+    @Body() body: { date: string; content: string },
+  ) {
     const userId = BigInt(req.user.userId);
     return this.journalService.upsertJournal(userId, body.date, body.content);
   }

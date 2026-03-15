@@ -26,16 +26,16 @@ export class UserService {
             is_active: true,
             error_count: true,
             last_used_at: true,
-          }
-        }
+          },
+        },
       },
     });
 
     if (user) {
       // Mask all API keys
-      user.geminiApiKeys = user.geminiApiKeys.map(k => ({
+      user.geminiApiKeys = user.geminiApiKeys.map((k) => ({
         ...k,
-        key: '********' + k.key.slice(-4)
+        key: '********' + k.key.slice(-4),
       })) as any;
     }
 
@@ -54,7 +54,7 @@ export class UserService {
   async toggleRoundRobin(userId: bigint, enabled: boolean) {
     return this.prisma.user.update({
       where: { id: userId },
-      data: { round_robin_enabled: enabled }
+      data: { round_robin_enabled: enabled },
     });
   }
 
@@ -72,11 +72,14 @@ export class UserService {
 
   async deleteGeminiKey(userId: bigint, keyId: bigint) {
     return this.prisma.geminiApiKey.delete({
-      where: { id: keyId, user_id: userId }
+      where: { id: keyId, user_id: userId },
     });
   }
 
-  async updateProfile(userId: bigint, data: { partner_name?: string, partner_persona?: string }) {
+  async updateProfile(
+    userId: bigint,
+    data: { partner_name?: string; partner_persona?: string },
+  ) {
     return this.prisma.user.update({
       where: { id: userId },
       data: {

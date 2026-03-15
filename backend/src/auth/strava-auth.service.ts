@@ -86,7 +86,10 @@ export class StravaAuthService {
         token: this.jwtService.sign(payload),
       };
     } catch (error) {
-      console.error('Strava Auth Error:', error.response?.data || error.message);
+      console.error(
+        'Strava Auth Error:',
+        error.response?.data || error.message,
+      );
       throw new UnauthorizedException('Failed to authenticate with Strava');
     }
   }

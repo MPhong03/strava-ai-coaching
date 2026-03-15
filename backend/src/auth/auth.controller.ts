@@ -12,12 +12,16 @@ export class AuthController {
   @Get('bridge')
   @Render('bridge')
   async bridge(@Query('code') code: string) {
-    const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
     return { code, frontendUrl };
   }
 
   @Post('callback')
   async callback(@Body() body: { code: string; redirect_uri?: string }) {
-    return this.stravaAuthService.validateStravaCode(body.code, body.redirect_uri);
+    return this.stravaAuthService.validateStravaCode(
+      body.code,
+      body.redirect_uri,
+    );
   }
 }

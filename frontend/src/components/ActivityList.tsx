@@ -44,8 +44,8 @@ const ActivityList: React.FC<Props> = ({ startDate, endDate }) => {
 
   return (
     <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col">
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-100 dark:divide-gray-800">
+      <div className="overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-800">
+        <table className="min-w-[700px] w-full divide-y divide-gray-100 dark:divide-gray-800">
           <thead className="bg-gray-50 dark:bg-black/20">
             <tr>
               <th className="px-6 py-4 text-left text-[9px] font-black text-gray-400 uppercase tracking-widest w-16">#</th>

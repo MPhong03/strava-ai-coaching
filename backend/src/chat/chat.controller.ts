@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Body, Query, UseGuards, Request, Sse, Res } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Query,
+  UseGuards,
+  Request,
+  Sse,
+  Res,
+} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ChatService } from './chat.service';
 import { Observable, map, filter } from 'rxjs';
@@ -21,7 +31,11 @@ export class ChatController {
     @Query('page') page = 1,
     @Query('limit') limit = 20,
   ) {
-    return this.chatService.getHistory(BigInt(sessionId), Number(page), Number(limit));
+    return this.chatService.getHistory(
+      BigInt(sessionId),
+      Number(page),
+      Number(limit),
+    );
   }
 
   @Post('message')
@@ -31,19 +45,19 @@ export class ChatController {
     @Res() res: Response,
   ) {
     const userId = BigInt(req.user.userId);
-    
+
     // Thiết lập header cho Streaming
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     res.setHeader('Transfer-Encoding', 'chunked');
 
     try {
       await this.chatService.sendMessage(
-        userId, 
-        BigInt(body.sessionId), 
+        userId,
+        BigInt(body.sessionId),
         body.message,
         (chunk) => {
           res.write(chunk); // Gửi từng phần về client
-        }
+        },
       );
       res.end(); // Kết thúc stream
     } catch (error) {
@@ -59,8 +73,10 @@ export class ChatController {
   status(@Request() req: any): Observable<any> {
     const sessionId = req.params.sessionId;
     return this.chatService.status$.asObservable().pipe(
-      filter(event => event.sessionId === sessionId),
-      map(event => ({ data: { status: event.status, toolName: event.toolName } }))
+      filter((event) => event.sessionId === sessionId),
+      map((event) => ({
+        data: { status: event.status, toolName: event.toolName },
+      })),
     );
   }
 }

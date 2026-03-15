@@ -63,8 +63,8 @@ const AiDashboard: React.FC = () => {
         <div className="px-8 py-5 border-b border-gray-100 dark:border-gray-800">
           <h3 className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">Recent Requests</h3>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
+        <div className="overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-800">
+          <table className="min-w-[600px] w-full text-left">
             <thead>
               <tr className="text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] bg-gray-50/50 dark:bg-black/20">
                 <th className="px-8 py-4">Time</th>

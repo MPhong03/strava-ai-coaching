@@ -7,7 +7,11 @@ export class GeminiApiService {
     return new GoogleGenerativeAI(apiKey);
   }
 
-  async generateInsight(activityData: any, userPreferences?: any, apiKey?: string) {
+  async generateInsight(
+    activityData: any,
+    userPreferences?: any,
+    apiKey?: string,
+  ) {
     if (!apiKey) {
       throw new Error('Gemini API Key is required for this user.');
     }
@@ -51,7 +55,7 @@ export class GeminiApiService {
     return {
       data: JSON.parse(response.text()),
       usage: response.usageMetadata,
-      model: 'gemini-3-flash-preview'
+      model: 'gemini-3-flash-preview',
     };
   }
 
@@ -63,11 +67,11 @@ export class GeminiApiService {
     const genAI = this.getClient(apiKey);
     const model = genAI.getGenerativeModel({ model: 'gemini-3-flash-preview' });
     const result = await model.generateContent(prompt);
-    
+
     return {
       text: result.response.text(),
       usage: result.response.usageMetadata,
-      model: 'gemini-3-flash-preview'
+      model: 'gemini-3-flash-preview',
     };
   }
 }

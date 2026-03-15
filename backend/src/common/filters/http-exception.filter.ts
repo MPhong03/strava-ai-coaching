@@ -32,6 +32,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
       (exception as Error).stack,
     );
 
+    if (response.headersSent) {
+      return;
+    }
+
     response.status(status).json({
       statusCode: status,
       timestamp: new Date().toISOString(),

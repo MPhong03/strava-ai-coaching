@@ -8,7 +8,12 @@ import { GeminiLoadBalancer } from './gemini-load-balancer.service';
 
 @Module({
   controllers: [AiController, AiUsageController],
-  providers: [InsightService, GeminiApiService, AiUsageService, GeminiLoadBalancer],
+  providers: [
+    InsightService,
+    GeminiApiService,
+    AiUsageService,
+    GeminiLoadBalancer,
+  ],
   exports: [InsightService, GeminiApiService, GeminiLoadBalancer],
 })
 export class AiModule {}

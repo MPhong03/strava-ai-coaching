@@ -1,4 +1,11 @@
-import { Controller, Get, Param, UseGuards, Request, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  UseGuards,
+  Request,
+  Query,
+} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { InsightService } from './insight.service';
 
@@ -9,12 +16,16 @@ export class AiController {
 
   @Get(':id/insight')
   async getInsight(
-    @Param('id') id: string, 
+    @Param('id') id: string,
     @Request() req: any,
-    @Query('generate') generate?: string
+    @Query('generate') generate?: string,
   ) {
     const userId = BigInt(req.user.userId);
     const activityId = BigInt(id);
-    return this.insightService.getInsight(activityId, userId, generate === 'true');
+    return this.insightService.getInsight(
+      activityId,
+      userId,
+      generate === 'true',
+    );
   }
 }

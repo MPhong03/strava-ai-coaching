@@ -15,11 +15,15 @@ export class ActivitySyncService {
       orderBy: { start_date: 'desc' },
     });
 
-    const after = (lastActivity && !fetchAll)
-      ? Math.floor(lastActivity.start_date.getTime() / 1000)
-      : undefined;
+    const after =
+      lastActivity && !fetchAll
+        ? Math.floor(lastActivity.start_date.getTime() / 1000)
+        : undefined;
 
-    const stravaActivities = await this.stravaApi.fetchActivities(userId, after);
+    const stravaActivities = await this.stravaApi.fetchActivities(
+      userId,
+      after,
+    );
 
     const syncPromises = stravaActivities
       .filter((act: any) => act.type === 'Run')

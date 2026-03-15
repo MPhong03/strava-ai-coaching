@@ -46,7 +46,7 @@ export class ActivitiesController {
         where,
         orderBy: { start_date: 'desc' },
       });
-      return allActivities.map(a => JSON.parse(a.raw_json));
+      return allActivities.map((a) => JSON.parse(a.raw_json));
     }
 
     const [data, total] = await Promise.all([
@@ -102,8 +102,14 @@ export class ActivitiesController {
   }
 
   @Post('sync')
-  async syncActivities(@Request() req: any, @Query('fetchAll') fetchAll?: string) {
+  async syncActivities(
+    @Request() req: any,
+    @Query('fetchAll') fetchAll?: string,
+  ) {
     const userId = BigInt(req.user.userId);
-    return this.activitySyncService.syncUserActivities(userId, fetchAll === 'true');
+    return this.activitySyncService.syncUserActivities(
+      userId,
+      fetchAll === 'true',
+    );
   }
 }

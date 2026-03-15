@@ -6,7 +6,7 @@ import { existsSync, readdirSync } from 'fs';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
-  
+
   // Enable CORS
   app.enableCors({
     origin: '*',
@@ -17,10 +17,10 @@ async function bootstrap() {
   // Đường dẫn chuẩn NestJS sau khi biên dịch (dist/views)
   // __dirname thường là dist/src, nên .. là dist/
   const viewsPath = join(__dirname, '..', 'views');
-  
+
   console.log(`__dirname: ${__dirname}`);
   console.log(`process.cwd(): ${process.cwd()}`);
-  
+
   if (existsSync(viewsPath)) {
     console.log(`Views directory found at: ${viewsPath}`);
     console.log('Contents:', readdirSync(viewsPath));

@@ -14,7 +14,11 @@ import { GeminiLoadBalancer } from '../ai/gemini-load-balancer.service';
 @Injectable()
 export class ChatService {
   private readonly logger = new Logger(ChatService.name);
-  public status$ = new Subject<{ sessionId: string, status: string, toolName?: string }>();
+  public status$ = new Subject<{
+    sessionId: string;
+    status: string;
+    toolName?: string;
+  }>();
 
   constructor(
     private prisma: PrismaService,
@@ -51,9 +55,16 @@ export class ChatService {
     });
   }
 
-  async sendMessage(userId: bigint, sessionId: bigint, userMessage: string, onChunk: (text: string) => void) {
-    this.logger.log(`[Session ${sessionId}] Processing new message from User ${userId}`);
-    
+  async sendMessage(
+    userId: bigint,
+    sessionId: bigint,
+    userMessage: string,
+    onChunk: (text: string) => void,
+  ) {
+    this.logger.log(
+      `[Session ${sessionId}] Processing new message from User ${userId}`,
+    );
+
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
     });
@@ -85,13 +96,13 @@ export class ChatService {
 
     const recentMessages = shortTermHistory.reverse();
 
-    const contents: Content[] = recentMessages.map(msg => ({
+    const contents: Content[] = recentMessages.map((msg) => ({
       role: msg.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: msg.content || '' }],
     }));
 
-    const midTermSummary = session?.context_summary 
-      ? `\n[TÓM TẮT HỘI THOẠI TRƯỚC ĐÓ]: ${session.context_summary}\n` 
+    const midTermSummary = session?.context_summary
+      ? `\n[TÓM TẮT HỘI THOẠI TRƯỚC ĐÓ]: ${session.context_summary}\n`
       : '';
 
     const systemInstruction = `
@@ -102,9 +113,13 @@ export class ChatService {
       Bạn đang hỗ trợ người dùng dựa trên dữ liệu Strava và nhật ký tập luyện của họ.
     `;
 
-    const messageCount = await this.prisma.chatMessage.count({ where: { session_id: sessionId } });
+    const messageCount = await this.prisma.chatMessage.count({
+      where: { session_id: sessionId },
+    });
     if (messageCount > 0 && messageCount % 10 === 0) {
-      this.summarizeContext(userId, sessionId).catch(err => this.logger.error(`Summarization failed: ${err.message}`));
+      this.summarizeContext(userId, sessionId).catch((err) =>
+        this.logger.error(`Summarization failed: ${err.message}`),
+      );
     }
 
     let retryCount = 0;
@@ -115,18 +130,24 @@ export class ChatService {
       const selectedKey = await this.loadBalancer.getBestKey(userId);
       try {
         const genAI = (this.geminiApi as any).getClient(selectedKey.key);
-        const model = genAI.getGenerativeModel({ model: 'gemini-3-flash-preview', systemInstruction });
+        const model = genAI.getGenerativeModel({
+          model: 'gemini-3-flash-preview',
+          systemInstruction,
+        });
 
         const chat = model.startChat({
           history: contents.slice(0, -1),
           tools: [{ functionDeclarations: chatTools }],
         });
 
-        this.status$.next({ sessionId: sessionId.toString(), status: 'thinking' });
+        this.status$.next({
+          sessionId: sessionId.toString(),
+          status: 'thinking',
+        });
 
         // Dùng sendMessageStream thay vì sendMessage
-        let result = await chat.sendMessageStream(userMessage);
-        
+        const result = await chat.sendMessageStream(userMessage);
+
         let aiContent = '';
         const toolLogs: any[] = [];
 
@@ -144,20 +165,34 @@ export class ChatService {
         // Vòng lặp xử lý Function Calling (nếu có)
         let callCount = 0;
         let currentResponse = response;
-        while (currentResponse.candidates?.[0]?.content?.parts?.some((p: any) => p.functionCall) && callCount < 5) {
-          const toolCalls = currentResponse.candidates[0].content.parts.filter((p: any) => p.functionCall);
+        while (
+          currentResponse.candidates?.[0]?.content?.parts?.some(
+            (p: any) => p.functionCall,
+          ) &&
+          callCount < 5
+        ) {
+          const toolCalls = currentResponse.candidates[0].content.parts.filter(
+            (p: any) => p.functionCall,
+          );
           const toolResultsForAI: any[] = [];
 
           for (const call of toolCalls) {
             const { name, args } = call.functionCall;
-            this.status$.next({ sessionId: sessionId.toString(), status: 'calling_tool', toolName: name });
+            this.status$.next({
+              sessionId: sessionId.toString(),
+              status: 'calling_tool',
+              toolName: name,
+            });
             const output = await this.executeTool(userId, name, args);
             toolLogs.push({ tool: name, args, result: output });
-            toolResultsForAI.push({ functionResponse: { name, response: { content: output } } });
+            toolResultsForAI.push({
+              functionResponse: { name, response: { content: output } },
+            });
           }
 
           // Gửi kết quả tool lại AI và tiếp tục stream
-          const toolStreamResult = await chat.sendMessageStream(toolResultsForAI);
+          const toolStreamResult =
+            await chat.sendMessageStream(toolResultsForAI);
           for await (const chunk of toolStreamResult.stream) {
             const chunkText = chunk.text();
             if (chunkText) {
@@ -185,21 +220,26 @@ export class ChatService {
               user_id: userId,
               type: 'CHAT',
               model_name: 'gemini-3-flash-preview',
-              prompt_tokens: currentResponse.usageMetadata.promptTokenCount || 0,
-              candidate_tokens: currentResponse.usageMetadata.candidatesTokenCount || 0,
+              prompt_tokens:
+                currentResponse.usageMetadata.promptTokenCount || 0,
+              candidate_tokens:
+                currentResponse.usageMetadata.candidatesTokenCount || 0,
               total_tokens: currentResponse.usageMetadata.totalTokenCount || 0,
-            }
+            },
           });
         }
 
         this.status$.next({ sessionId: sessionId.toString(), status: 'idle' });
         return assistantMsg;
-
       } catch (error: any) {
         await this.loadBalancer.reportError(selectedKey.id, error);
         lastError = error;
         retryCount++;
-        if (!error.message?.includes('429') && !error.message?.includes('Quota exceeded')) break;
+        if (
+          !error.message?.includes('429') &&
+          !error.message?.includes('Quota exceeded')
+        )
+          break;
       }
     }
 
@@ -224,7 +264,11 @@ export class ChatService {
           break;
         case 'update_today_journal':
           const today = new Date().toISOString().split('T')[0];
-          result = await this.journalService.upsertJournal(userId, today, args.content);
+          result = await this.journalService.upsertJournal(
+            userId,
+            today,
+            args.content,
+          );
           break;
         case 'get_daily_journal':
           result = await this.journalService.getJournal(userId, args.date);
@@ -233,25 +277,41 @@ export class ChatService {
           result = await this.activitySync.syncUserActivities(userId, false);
           break;
         case 'get_performance_report':
-          result = await this.reportsService.getPerformanceReport(userId, args.startDate, args.endDate);
+          result = await this.reportsService.getPerformanceReport(
+            userId,
+            args.startDate,
+            args.endDate,
+          );
           break;
         case 'update_profile_preferences':
-          result = await this.userService.updatePreferences(userId, args.preferences);
+          result = await this.userService.updatePreferences(
+            userId,
+            args.preferences,
+          );
           break;
         default:
           return { error: 'Tool not found' };
       }
 
-      return JSON.parse(JSON.stringify(result, (k, v) => typeof v === 'bigint' ? v.toString() : v));
+      const safeResult = result === undefined ? null : result;
+      return JSON.parse(
+        JSON.stringify(safeResult, (k, v) =>
+          typeof v === 'bigint' ? v.toString() : v,
+        ),
+      );
     } catch (error) {
-      this.logger.error(`[User ${userId}] Tool ${name} failed: ${error.message}`);
+      this.logger.error(
+        `[User ${userId}] Tool ${name} failed: ${error.message}`,
+      );
       return { error: error.message };
     }
   }
 
   private async summarizeContext(userId: bigint, sessionId: bigint) {
-    this.logger.log(`[Session ${sessionId}] Triggering rolling summarization...`);
-    
+    this.logger.log(
+      `[Session ${sessionId}] Triggering rolling summarization...`,
+    );
+
     // Lấy 20 tin nhắn gần nhất để tóm tắt
     const messages = await this.prisma.chatMessage.findMany({
       where: { session_id: sessionId },
@@ -259,7 +319,10 @@ export class ChatService {
       take: 20,
     });
 
-    const conversationText = messages.reverse().map(m => `${m.role.toUpperCase()}: ${m.content}`).join('\n');
+    const conversationText = messages
+      .reverse()
+      .map((m) => `${m.role.toUpperCase()}: ${m.content}`)
+      .join('\n');
 
     const summaryPrompt = `
       Hãy tóm tắt ngắn gọn (dưới 500 tokens) nội dung cuộc hội thoại dưới đây. 
@@ -276,7 +339,9 @@ export class ChatService {
     try {
       const selectedKey = await this.loadBalancer.getBestKey(userId);
       const genAI = (this.geminiApi as any).getClient(selectedKey.key);
-      const model = genAI.getGenerativeModel({ model: 'gemini-3-flash-preview' });
+      const model = genAI.getGenerativeModel({
+        model: 'gemini-3-flash-preview',
+      });
 
       const result = await model.generateContent(summaryPrompt);
       const summary = result.response.text();
@@ -288,7 +353,9 @@ export class ChatService {
 
       this.logger.log(`[Session ${sessionId}] Summarization complete.`);
     } catch (error) {
-      this.logger.error(`[Session ${sessionId}] Summarization failed: ${error.message}`);
+      this.logger.error(
+        `[Session ${sessionId}] Summarization failed: ${error.message}`,
+      );
     }
   }
 }

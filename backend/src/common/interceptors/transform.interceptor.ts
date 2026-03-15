@@ -12,13 +12,8 @@ export interface Response<T> {
 }
 
 @Injectable()
-export class TransformInterceptor<T>
-  implements NestInterceptor<T, any>
-{
-  intercept(
-    context: ExecutionContext,
-    next: CallHandler,
-  ): Observable<any> {
+export class TransformInterceptor<T> implements NestInterceptor<T, any> {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const http = context.switchToHttp();
     const request = http.getRequest();
 
@@ -29,13 +24,25 @@ export class TransformInterceptor<T>
     }
 
     return next.handle().pipe(
-      map((data) => ({
-        data: JSON.parse(
-          JSON.stringify(data, (key, value) =>
-            typeof value === 'bigint' ? value.toString() : value,
+      map((data) => {
+        const response = http.getResponse();
+
+        // Nếu header đã được gửi (ví dụ qua @Res), KHÔNG bọc dữ liệu nữa
+        if (response.headersSent) {
+          return data;
+        }
+
+        // Nếu data là undefined (ví dụ method trả về void), chuyển thành null để stringify an toàn
+        const safeData = data === undefined ? null : data;
+
+        return {
+          data: JSON.parse(
+            JSON.stringify(safeData, (key, value) =>
+              typeof value === 'bigint' ? value.toString() : value,
+            ),
           ),
-        ),
-      })),
+        };
+      }),
     );
   }
 }

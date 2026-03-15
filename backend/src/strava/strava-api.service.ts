@@ -50,8 +50,11 @@ export class StravaApiService {
         grant_type: 'refresh_token',
       });
 
-      const { access_token, refresh_token: new_refresh_token, expires_at } =
-        response.data;
+      const {
+        access_token,
+        refresh_token: new_refresh_token,
+        expires_at,
+      } = response.data;
 
       const encryptedAccessToken = EncryptionUtil.encrypt(
         access_token,

@@ -11,7 +11,12 @@ export class ReportsService {
     private loadBalancer: GeminiLoadBalancer,
   ) {}
 
-  async getPerformanceReport(userId: bigint, startDateStr?: string, endDateStr?: string, generate = false) {
+  async getPerformanceReport(
+    userId: bigint,
+    startDateStr?: string,
+    endDateStr?: string,
+    generate = false,
+  ) {
     let startDate: Date;
     let endDate: Date;
 
@@ -33,13 +38,17 @@ export class ReportsService {
 
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { preferences: true }
+      select: { preferences: true },
     });
 
     let report = await this.prisma.performanceReport.findUnique({
-      where: { 
-        user_id_start_date_end_date: { user_id: userId, start_date: startDate, end_date: endDate } 
-      }
+      where: {
+        user_id_start_date_end_date: {
+          user_id: userId,
+          start_date: startDate,
+          end_date: endDate,
+        },
+      },
     });
 
     const queryEndDate = new Date(endDate);
@@ -56,15 +65,28 @@ export class ReportsService {
       where: {
         user_id: userId,
         date: { gte: startDate, lte: endDate },
-      }
+      },
     });
 
     const activityCount = activities.length;
-    const totalDistance = activities.reduce((sum, act) => sum + act.distance, 0);
-    const totalMovingTime = activities.reduce((sum, act) => sum + act.moving_time, 0);
-    const totalCalories = activities.reduce((sum, act) => sum + (act.calories || 0), 0);
-    const totalElevationGain = activities.reduce((sum, act) => sum + act.total_elevation_gain, 0);
-    const avgPace = totalDistance > 0 ? (totalMovingTime / 60) / (totalDistance / 1000) : 0;
+    const totalDistance = activities.reduce(
+      (sum, act) => sum + act.distance,
+      0,
+    );
+    const totalMovingTime = activities.reduce(
+      (sum, act) => sum + act.moving_time,
+      0,
+    );
+    const totalCalories = activities.reduce(
+      (sum, act) => sum + (act.calories || 0),
+      0,
+    );
+    const totalElevationGain = activities.reduce(
+      (sum, act) => sum + act.total_elevation_gain,
+      0,
+    );
+    const avgPace =
+      totalDistance > 0 ? totalMovingTime / 60 / (totalDistance / 1000) : 0;
 
     const data = {
       user_id: userId,
@@ -81,7 +103,10 @@ export class ReportsService {
     if (!report) {
       report = await this.prisma.performanceReport.create({ data });
     } else {
-      report = await this.prisma.performanceReport.update({ where: { id: report.id }, data });
+      report = await this.prisma.performanceReport.update({
+        where: { id: report.id },
+        data,
+      });
     }
 
     const now = new Date();
@@ -90,14 +115,14 @@ export class ReportsService {
     const startOfCurrentWeek = new Date(new Date().setDate(diff));
     startOfCurrentWeek.setHours(0, 0, 0, 0);
 
-    const targetId = `${startDate.getFullYear()}-${startDate.getMonth()+1}-${startDate.getDate()}_${endDate.getFullYear()}-${endDate.getMonth()+1}-${endDate.getDate()}`;
+    const targetId = `${startDate.getFullYear()}-${startDate.getMonth() + 1}-${startDate.getDate()}_${endDate.getFullYear()}-${endDate.getMonth() + 1}-${endDate.getDate()}`;
     const usageCount = await this.prisma.aiUsageLog.count({
       where: {
         user_id: userId,
         type: 'REPORT',
         target_id: targetId,
         created_at: { gte: startOfCurrentWeek },
-      }
+      },
     });
 
     const limitInfo = {
@@ -111,7 +136,9 @@ export class ReportsService {
     }
 
     if (usageCount >= 5) {
-      throw new Error('Bạn đã hết lượt gọi AI cho báo cáo này trong tuần này (Tối đa 5 lần/tuần).');
+      throw new Error(
+        'Bạn đã hết lượt gọi AI cho báo cáo này trong tuần này (Tối đa 5 lần/tuần).',
+      );
     }
 
     // Load Balance Selection
@@ -121,7 +148,7 @@ export class ReportsService {
     const summary = activities.map((a) => ({
       date: a.start_date,
       distance: (a.distance / 1000).toFixed(2) + ' km',
-      pace: ((a.moving_time / 60) / (a.distance / 1000)).toFixed(2) + ' min/km',
+      pace: (a.moving_time / 60 / (a.distance / 1000)).toFixed(2) + ' min/km',
       elevation: a.total_elevation_gain + ' m',
       name: a.name,
     }));
@@ -131,7 +158,7 @@ export class ReportsService {
       Thông tin người chạy: ${JSON.stringify(preferences)}
 
       Nhật ký sinh hoạt & luyện tập bổ trợ:
-      ${journals.map(j => `- Ngày ${j.date.toLocaleDateString()}: ${j.content}`).join('\n')}
+      ${journals.map((j) => `- Ngày ${j.date.toLocaleDateString()}: ${j.content}`).join('\n')}
 
       Dữ liệu hoạt động Strava:
       ${JSON.stringify(summary)}
@@ -139,10 +166,13 @@ export class ReportsService {
     `;
 
     try {
-      const aiResult = await this.geminiApi.generateText(prompt, selectedKey.key);
+      const aiResult = await this.geminiApi.generateText(
+        prompt,
+        selectedKey.key,
+      );
 
       await this.prisma.aiUsageLog.create({
-        data: { user_id: userId, type: 'REPORT', target_id: targetId }
+        data: { user_id: userId, type: 'REPORT', target_id: targetId },
       });
 
       await this.prisma.geminiUsage.create({
@@ -153,17 +183,21 @@ export class ReportsService {
           prompt_tokens: aiResult.usage?.promptTokenCount || 0,
           candidate_tokens: aiResult.usage?.candidatesTokenCount || 0,
           total_tokens: aiResult.usage?.totalTokenCount || 0,
-        }
+        },
       });
 
       const updatedReport = await this.prisma.performanceReport.update({
         where: { id: report.id },
-        data: { trend_insight: aiResult.text, last_generated_at: new Date() }
+        data: { trend_insight: aiResult.text, last_generated_at: new Date() },
       });
 
-      return { 
-        report: updatedReport, 
-        limit: { ...limitInfo, used: usageCount + 1, remaining: 5 - (usageCount + 1) } 
+      return {
+        report: updatedReport,
+        limit: {
+          ...limitInfo,
+          used: usageCount + 1,
+          remaining: 5 - (usageCount + 1),
+        },
       };
     } catch (error) {
       await this.loadBalancer.reportError(selectedKey.id, error);

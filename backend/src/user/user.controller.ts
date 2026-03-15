@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Delete, Body, Param, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Body,
+  Param,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { UserService } from './user.service';
 
@@ -32,7 +41,10 @@ export class UserController {
   }
 
   @Post('round-robin')
-  async toggleRoundRobin(@Request() req: any, @Body('enabled') enabled: boolean) {
+  async toggleRoundRobin(
+    @Request() req: any,
+    @Body('enabled') enabled: boolean,
+  ) {
     const userId = BigInt(req.user.userId);
     return this.userService.toggleRoundRobin(userId, enabled);
   }

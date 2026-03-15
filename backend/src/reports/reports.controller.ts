@@ -15,6 +15,11 @@ export class ReportsController {
     @Query('generate') generate?: string,
   ) {
     const userId = BigInt(req.user.userId);
-    return this.reportsService.getPerformanceReport(userId, startDate, endDate, generate === 'true');
+    return this.reportsService.getPerformanceReport(
+      userId,
+      startDate,
+      endDate,
+      generate === 'true',
+    );
   }
 }

@@ -7,6 +7,8 @@ test('has title', async ({ page }) => {
 
 test('login button exists', async ({ page }) => {
   await page.goto('http://localhost:3000/login');
-  const loginButton = page.getByRole('button', { name: /Connect with Strava/i });
+  const loginButton = page.getByRole('button', {
+    name: /Connect with Strava/i,
+  });
   await expect(loginButton).toBeVisible();
 });
