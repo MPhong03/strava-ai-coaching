@@ -244,7 +244,29 @@ export class ChatService {
     }
 
     this.status$.next({ sessionId: sessionId.toString(), status: 'idle' });
-    // Nếu lỗi, fallback về text thông thường hoặc ném lỗi
+
+    // Nếu lỗi sau khi đã thử hết các key (hoặc lỗi không phải 429)
+    if (
+      lastError?.message?.includes('429') ||
+      lastError?.message?.includes('Quota exceeded')
+    ) {
+      const fallbackContent =
+        'Xin lỗi bạn, hiện tại hệ thống AI đang nhận được quá nhiều yêu cầu (hết quota). Vui lòng đợi một chút hoặc thử lại sau ít phút nhé! 🏃‍♂️💨';
+
+      // Gửi message qua callback để người dùng thấy ngay (nếu đang dùng stream)
+      onChunk(fallbackContent);
+
+      // Lưu tin nhắn fallback vào DB để đồng bộ lịch sử chat
+      return await this.prisma.chatMessage.create({
+        data: {
+          session_id: sessionId,
+          role: 'assistant',
+          content: fallbackContent,
+        },
+      });
+    }
+
+    // Nếu là lỗi khác không phải Quota, vẫn throw để Controller xử lý
     throw lastError;
   }
 
