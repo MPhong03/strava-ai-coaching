@@ -16,17 +16,21 @@ export class TransformInterceptor<T> implements NestInterceptor<T, any> {
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const http = context.switchToHttp();
     const request = http.getRequest();
+    const response = http.getResponse();
 
     // BỎ QUA Interceptor nếu đây là yêu cầu render giao diện (MVC)
     // Hoặc nếu kết quả trả về đã được định nghĩa là một view
-    if (request.url.includes('/auth/strava/bridge') || request.url === '/') {
+    // Hoặc nếu là stream chat message
+    if (
+      request.url.includes('/auth/strava/bridge') ||
+      request.url === '/' ||
+      request.url.includes('/chat/message')
+    ) {
       return next.handle();
     }
 
     return next.handle().pipe(
       map((data) => {
-        const response = http.getResponse();
-
         // Nếu header đã được gửi (ví dụ qua @Res), KHÔNG bọc dữ liệu nữa
         if (response.headersSent) {
           return data;
