@@ -9,7 +9,8 @@ const Layout: React.FC = () => {
     <div className="flex min-h-screen bg-gray-50 dark:bg-black text-gray-900 dark:text-gray-100 transition-colors duration-300">
       <Sidebar />
       
-      <main className="flex-1 pb-24 lg:pb-0">
+      {/* Container chính với khoảng cách StatusBar cho Mobile */}
+      <main className="flex-1 pt-[env(safe-area-inset-top,0px)] pb-safe">
         <div className="max-w-7xl mx-auto">
           <Outlet />
         </div>

@@ -44,11 +44,11 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <main className="py-6 sm:py-10 px-4 sm:px-8">
+    <main className="py-6 sm:py-10 px-4 sm:px-8 max-w-full overflow-x-hidden">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tighter uppercase italic text-orange-600">Runs Log</h2>
       </div>
-      <div className="bg-white dark:bg-gray-900 p-4 sm:p-6 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 mb-10">
+      <div className="bg-white dark:bg-gray-900 p-4 sm:p-6 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 mb-10 overflow-hidden">
         <div className="flex flex-col lg:flex-row items-stretch lg:items-end gap-4 sm:gap-6">
           <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -60,15 +60,19 @@ const Dashboard: React.FC = () => {
               <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full bg-gray-50 dark:bg-black border-none rounded-xl focus:ring-2 focus:ring-orange-500 px-4 py-2.5 text-sm dark:text-white" />
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <button onClick={copyFilteredJson} className="bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition">Copy JSON</button>
-            <button onClick={() => handleSync(true)} disabled={syncing} className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition">{syncing ? '...' : 'Sync All'}</button>
-            <button onClick={() => handleSync(false)} disabled={syncing} className="bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition">{syncing ? '...' : 'Sync Recent'}</button>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <button onClick={copyFilteredJson} className="flex-1 sm:flex-none bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-4 py-2.5 rounded-xl font-black text-[9px] uppercase tracking-widest transition">Copy JSON</button>
+            <button onClick={() => handleSync(true)} disabled={syncing} className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white px-4 py-2.5 rounded-xl font-black text-[9px] uppercase tracking-widest transition">{syncing ? '...' : 'Sync All'}</button>
+            <button onClick={() => handleSync(false)} disabled={syncing} className="flex-1 sm:flex-none bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white px-4 py-2.5 rounded-xl font-black text-[9px] uppercase tracking-widest transition">{syncing ? '...' : 'Sync Recent'}</button>
           </div>
         </div>
       </div>
-      <DailyJournal />
-      <ActivityList startDate={startDate} endDate={endDate} />
+      <div className="w-full overflow-hidden">
+        <DailyJournal />
+      </div>
+      <div className="w-full overflow-hidden">
+        <ActivityList startDate={startDate} endDate={endDate} />
+      </div>
     </main>
   );
 };

@@ -50,7 +50,7 @@ const DailyJournal: React.FC<Props> = ({ initialDate, readOnly = false }) => {
   if (isLoading) return <div className="animate-pulse bg-white dark:bg-gray-900 h-32 rounded-3xl border border-gray-100 dark:border-gray-800 mb-10"></div>;
 
   return (
-    <div className={`bg-white dark:bg-gray-900 p-6 sm:p-8 rounded-3xl shadow-sm border ${readOnly ? 'border-orange-500/20 bg-orange-50/10 dark:bg-orange-900/10' : 'border-gray-100 dark:border-gray-800'} mb-10 transition-colors`}>
+    <div className={`bg-white dark:bg-gray-900 p-4 sm:p-8 rounded-3xl shadow-sm border ${readOnly ? 'border-orange-500/20 bg-orange-50/10 dark:bg-orange-900/10' : 'border-gray-100 dark:border-gray-800'} mb-10 transition-colors overflow-hidden`}>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
         <div className="flex items-center gap-3">
           <span className="text-2xl">✍️</span>

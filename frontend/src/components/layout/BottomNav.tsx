@@ -1,7 +1,15 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation, useParams } from 'react-router-dom';
 
 const BottomNav: React.FC = () => {
+  const location = useLocation();
+  const params = useParams();
+
+  // Ẩn Bottom Nav ở trang chi tiết hoạt động và trang chat
+  const isHidden = location.pathname === '/chat' || !!params.id;
+
+  if (isHidden) return null;
+
   const navItems = [
     { to: '/', label: 'Home', icon: (
       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
@@ -18,7 +26,7 @@ const BottomNav: React.FC = () => {
   ];
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 px-4 py-3 flex justify-between items-center z-50 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] shadow-2xl">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-black/90 backdrop-blur-lg border-t border-gray-100 dark:border-gray-800 px-4 py-3 flex justify-between items-center z-50 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
       {navItems.map((item) => (
         <NavLink
           key={item.to}
