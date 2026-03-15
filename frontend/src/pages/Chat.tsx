@@ -155,6 +155,12 @@ const Chat: React.FC = () => {
         .animate-chunk {
           animation: fadeInChunk 0.2s ease-out forwards;
         }
+        .prose p {
+          margin-bottom: 1.25rem;
+        }
+        .prose p:last-child {
+          margin-bottom: 0;
+        }
       `}</style>
       
       {/* Header */}
@@ -174,96 +180,108 @@ const Chat: React.FC = () => {
       {/* Chat Area */}
       <div 
         ref={scrollRef}
-        className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-6 bg-[#f8f9fa] dark:bg-black/40 scroll-smooth"
+        className="flex-1 overflow-y-auto bg-white dark:bg-black scroll-smooth"
       >
-        {hasNextPage && (
-          <button 
-            onClick={() => fetchNextPage()}
-            disabled={isFetchingNextPage}
-            className="w-full py-4 text-[10px] font-black text-gray-400 hover:text-orange-500 transition uppercase tracking-[0.2em]"
-          >
-            {isFetchingNextPage ? 'Loading history...' : 'View older messages'}
-          </button>
-        )}
+        <div className="max-w-4xl mx-auto p-4 sm:p-8 space-y-8">
+          {hasNextPage && (
+            <button 
+              onClick={() => fetchNextPage()}
+              disabled={isFetchingNextPage}
+              className="w-full py-4 text-[10px] font-black text-gray-400 hover:text-orange-500 transition uppercase tracking-[0.2em]"
+            >
+              {isFetchingNextPage ? 'Loading history...' : 'View older messages'}
+            </button>
+          )}
 
-        {messages.length === 0 && !historyLoading && !optimisticUserMessage && (
-          <div className="text-center py-20">
-            <div className="w-20 h-20 bg-gradient-to-br from-orange-400 to-orange-600 rounded-[2.5rem] flex items-center justify-center mx-auto mb-6 text-4xl shadow-xl shadow-orange-100">🤖</div>
-            <h3 className="text-xl font-black text-gray-900 dark:text-white mb-2 uppercase italic tracking-tighter">Hello, runner!</h3>
-            <p className="text-gray-500 text-sm max-w-xs mx-auto font-medium leading-relaxed uppercase tracking-widest text-[10px]">
-              I'm your dedicated AI Partner. Ask me anything about your runs or context.
-            </p>
-          </div>
-        )}
-
-        {/* Messages from History */}
-        {messages.map((msg: any) => (
-          <div key={msg.id} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-            <div className={`max-w-[90%] sm:max-w-[75%] rounded-3xl px-6 py-4 shadow-sm ${
-              msg.role === 'user' 
-                ? 'bg-orange-500 text-white rounded-tr-none' 
-                : 'bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 rounded-tl-none border border-gray-100 dark:border-gray-800'
-            }`}>
-              {msg.tool_logs && (
-                <div className="mb-3 pb-3 border-b border-gray-50 dark:border-gray-800">
-                  {JSON.parse(msg.tool_logs).map((log: any, idx: number) => (
-                    <div key={idx} className="flex items-center gap-2 text-[9px] text-gray-400 dark:text-gray-500 font-black uppercase tracking-widest mb-1">
-                      <span className="w-1.5 h-1.5 bg-orange-400 rounded-full"></span>
-                      <span>EXEC: {log.tool}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <div className="prose prose-sm max-w-none dark:prose-invert prose-orange font-medium leading-relaxed">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {msg.content}
-                </ReactMarkdown>
-              </div>
+          {messages.length === 0 && !historyLoading && !optimisticUserMessage && (
+            <div className="text-center py-20">
+              <div className="w-20 h-20 bg-gradient-to-br from-orange-400 to-orange-600 rounded-[2.5rem] flex items-center justify-center mx-auto mb-6 text-4xl shadow-xl shadow-orange-100">🤖</div>
+              <h3 className="text-xl font-black text-gray-900 dark:text-white mb-2 uppercase italic tracking-tighter">Hello, runner!</h3>
+              <p className="text-gray-500 text-sm max-w-xs mx-auto font-medium leading-relaxed uppercase tracking-widest text-[10px]">
+                I'm your dedicated AI Partner. Ask me anything about your runs or context.
+              </p>
             </div>
-            <div className="text-[9px] mt-2 font-black uppercase tracking-widest text-gray-300 dark:text-gray-700 px-2">
-              {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </div>
-          </div>
-        ))}
+          )}
 
-        {/* Optimistic User Message */}
-        {optimisticUserMessage && (
-          <div className="flex flex-col items-end animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <div className="max-w-[90%] sm:max-w-[75%] rounded-3xl px-6 py-4 shadow-sm bg-orange-500 text-white rounded-tr-none">
-              <div className="prose prose-sm max-w-none prose-invert font-medium">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {optimisticUserMessage}
-                </ReactMarkdown>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* AI Stream Content with Chunk Animation */}
-        {(aiStatus.status !== 'idle' || streamingContent) && (
-          <div className="flex flex-col items-start gap-2">
-            <div className={`max-w-[90%] sm:max-w-[75%] rounded-3xl px-6 py-4 shadow-sm bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 rounded-tl-none border border-gray-100 dark:border-gray-800 ${streamingContent ? 'animate-chunk' : ''}`}>
-              {streamingContent ? (
-                <div className="prose prose-sm max-w-none dark:prose-invert prose-orange font-medium leading-relaxed">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {streamingContent}
-                  </ReactMarkdown>
+          {/* Messages from History */}
+          {messages.map((msg: any) => (
+            <div key={msg.id} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start w-full'}`}>
+              {msg.role === 'user' ? (
+                // User Message Bubble
+                <div className="max-w-[85%] sm:max-w-[70%] rounded-3xl px-6 py-4 shadow-sm bg-orange-500 text-white rounded-tr-none">
+                  <div className="prose prose-sm max-w-none prose-invert font-medium leading-relaxed">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {msg.content}
+                    </ReactMarkdown>
+                  </div>
                 </div>
               ) : (
-                <div className="flex items-center gap-3">
-                  <div className="flex gap-1.5">
-                    <div className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-bounce"></div>
-                    <div className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-bounce [animation-delay:0.2s]"></div>
-                    <div className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-bounce [animation-delay:0.4s]"></div>
+                // AI Full Width Style
+                <div className="w-full border-b border-gray-50 dark:border-gray-900/50 pb-8">
+                  <div className="min-w-0">
+                    {msg.tool_logs && (
+                      <div className="mb-4 flex flex-wrap gap-2">
+                        {JSON.parse(msg.tool_logs).map((log: any, idx: number) => (
+                          <div key={idx} className="flex items-center gap-1.5 bg-gray-50 dark:bg-gray-900 px-3 py-1 rounded-lg border border-gray-100 dark:border-gray-800 text-[9px] text-gray-400 dark:text-gray-500 font-black uppercase tracking-widest">
+                            <span className="w-1 h-1 bg-orange-400 rounded-full animate-pulse"></span>
+                            <span>{log.tool}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <div className="prose prose-sm sm:prose-base max-w-none dark:prose-invert prose-orange font-medium leading-relaxed text-gray-800 dark:text-gray-200">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {msg.content}
+                      </ReactMarkdown>
+                    </div>
                   </div>
-                  <span className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">
-                    {aiStatus.status === 'thinking' ? 'AI is thinking...' : `Accessing ${aiStatus.toolName}...`}
-                  </span>
                 </div>
               )}
+              <div className="text-[9px] mt-2 font-black uppercase tracking-widest text-gray-300 dark:text-gray-700 px-2">
+                {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </div>
             </div>
-          </div>
-        )}
+          ))}
+
+          {/* Optimistic User Message */}
+          {optimisticUserMessage && (
+            <div className="flex flex-col items-end animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <div className="max-w-[85%] sm:max-w-[70%] rounded-3xl px-6 py-4 shadow-sm bg-orange-500 text-white rounded-tr-none">
+                <div className="prose prose-sm max-w-none prose-invert font-medium leading-relaxed">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {optimisticUserMessage}
+                  </ReactMarkdown>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* AI Stream Content with Full Width Style */}
+          {(aiStatus.status !== 'idle' || streamingContent) && (
+            <div className="w-full animate-in fade-in duration-500">
+              <div className="min-w-0">
+                {streamingContent ? (
+                  <div className="prose prose-sm sm:prose-base max-w-none dark:prose-invert prose-orange font-medium leading-relaxed text-gray-800 dark:text-gray-200 animate-chunk">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {streamingContent}
+                    </ReactMarkdown>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    <div className="flex gap-1.5 items-center">
+                      <div className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-bounce"></div>
+                      <div className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-bounce [animation-delay:0.2s]"></div>
+                      <div className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-bounce [animation-delay:0.4s]"></div>
+                      <span className="text-[10px] ml-2 font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">
+                        {aiStatus.status === 'thinking' ? 'AI is thinking...' : `Accessing ${aiStatus.toolName}...`}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Input Area */}

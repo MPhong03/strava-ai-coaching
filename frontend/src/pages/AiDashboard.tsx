@@ -59,11 +59,11 @@ const AiDashboard: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden w-full max-w-full">
         <div className="px-8 py-5 border-b border-gray-100 dark:border-gray-800">
           <h3 className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">Recent Requests</h3>
         </div>
-        <div className="overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-800">
+        <div className="overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-800 w-full">
           <table className="min-w-[600px] w-full text-left">
             <thead>
               <tr className="text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] bg-gray-50/50 dark:bg-black/20">

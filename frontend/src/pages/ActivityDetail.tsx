@@ -58,10 +58,41 @@ const ActivityDetail: React.FC = () => {
     } finally { setAnalyzing(false); }
   };
 
-  const copyJson = () => {
+  const copyJson = async () => {
     if (activity?.raw_json) {
-      navigator.clipboard.writeText(activity.raw_json);
-      toast.success('JSON copied!');
+      let combinedData = JSON.parse(activity.raw_json);
+      
+      // Nếu có Daily Journal, gộp vào JSON
+      if (journalData?.content) {
+        combinedData = {
+          ...combinedData,
+          pacely_journal: journalData.content
+        };
+      }
+
+      const textToCopy = JSON.stringify(combinedData, null, 2);
+      
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(textToCopy);
+        toast.success(journalData?.content ? 'JSON (with Journal) copied!' : 'JSON copied!');
+      } else {
+        // Fallback for non-secure contexts or mobile WebViews
+        const textArea = document.createElement("textarea");
+        textArea.value = textToCopy;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-9999px";
+        textArea.style.top = "0";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+          document.execCommand('copy');
+          toast.success(journalData?.content ? 'JSON (with Journal) copied!' : 'JSON copied!');
+        } catch (err) {
+          toast.error('Failed to copy JSON');
+        }
+        document.body.removeChild(textArea);
+      }
     }
   };
 

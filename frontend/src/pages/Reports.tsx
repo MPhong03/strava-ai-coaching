@@ -102,7 +102,7 @@ const Reports: React.FC = () => {
   const limit = reportData?.limit;
 
   return (
-    <div className="py-6 sm:py-10 px-4 sm:px-8 max-w-7xl mx-auto pb-32 lg:pb-10">
+    <div className="py-6 sm:py-10 px-4 sm:px-8 w-full max-w-full min-w-0 overflow-x-hidden pb-32 lg:pb-10 mx-auto">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
         <h2 className="text-3xl sm:text-4xl font-black tracking-tighter uppercase italic dark:text-white">Performance</h2>
         

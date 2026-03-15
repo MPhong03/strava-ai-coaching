@@ -38,13 +38,34 @@ const Dashboard: React.FC = () => {
   const copyFilteredJson = async () => {
     try {
       const response = await axios.get(`${process.env.REACT_APP_API_URL}/activities`, { headers: { Authorization: `Bearer ${token}` }, params: { startDate, endDate, export: 'true' } });
-      navigator.clipboard.writeText(JSON.stringify(response.data.data, null, 2));
-      toast.success('Activities JSON copied!');
+      const textToCopy = JSON.stringify(response.data.data, null, 2);
+      
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(textToCopy);
+        toast.success('Activities JSON copied!');
+      } else {
+        // Fallback for non-secure contexts or mobile WebViews where navigator.clipboard might be missing
+        const textArea = document.createElement("textarea");
+        textArea.value = textToCopy;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-9999px";
+        textArea.style.top = "0";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+          document.execCommand('copy');
+          toast.success('Activities JSON copied!');
+        } catch (err) {
+          toast.error('Failed to copy JSON');
+        }
+        document.body.removeChild(textArea);
+      }
     } catch (error) { toast.error('Failed to export JSON'); }
   };
 
   return (
-    <main className="py-6 sm:py-10 px-4 sm:px-8 max-w-full overflow-x-hidden pb-32">
+    <main className="py-6 sm:py-10 px-4 sm:px-8 w-full max-w-full overflow-x-hidden pb-32 min-w-0">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tighter uppercase italic text-orange-600">Runs Log</h2>
       </div>

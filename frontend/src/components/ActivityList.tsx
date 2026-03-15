@@ -43,8 +43,8 @@ const ActivityList: React.FC<Props> = ({ startDate, endDate }) => {
   const meta = data?.meta || { total: 0, page: 1, last_page: 1 };
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col">
-      <div className="overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-800">
+    <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col w-full max-w-full">
+      <div className="overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-800 w-full">
         <table className="min-w-[700px] w-full divide-y divide-gray-100 dark:divide-gray-800">
           <thead className="bg-gray-50 dark:bg-black/20">
             <tr>

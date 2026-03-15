@@ -10,8 +10,8 @@ const Layout: React.FC = () => {
       <Sidebar />
       
       {/* Container chính với khoảng cách StatusBar cho Mobile */}
-      <main className="flex-1 pt-[env(safe-area-inset-top,0px)] pb-safe">
-        <div className="max-w-7xl mx-auto">
+      <main className="flex-1 pt-[env(safe-area-inset-top,0px)] pb-safe min-w-0 overflow-hidden">
+        <div className="max-w-7xl mx-auto w-full px-0 sm:px-0">
           <Outlet />
         </div>
       </main>
