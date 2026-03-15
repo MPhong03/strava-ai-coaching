@@ -1,98 +1,92 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# 🏃‍♂️ PACELY — Your Intelligence-Driven Running Partner
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+[![React 19](https://img.shields.io/badge/Frontend-React%2019-61dafb?style=for-the-badge&logo=react)](https://react.dev/)
+[![NestJS 11](https://img.shields.io/badge/Backend-NestJS%2011-e0234e?style=for-the-badge&logo=nestjs)](https://nestjs.com/)
+[![Prisma](https://img.shields.io/badge/ORM-Prisma-2d3748?style=for-the-badge&logo=prisma)](https://www.prisma.io/)
+[![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL-336791?style=for-the-badge&logo=postgresql)](https://www.postgresql.org/)
+[![Gemini AI](https://img.shields.io/badge/AI-Gemini%203%20Flash-blue?style=for-the-badge&logo=google-gemini)](https://deepmind.google/technologies/gemini/)
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+**PACELY** không chỉ là một ứng dụng theo dõi chạy bộ thông thường. Nó là một **AI Coaching Ecosystem** toàn diện, kết nối trực tiếp với Strava để biến những con số khô khan thành những lời khuyên chiến thuật, giúp runner chạy thông minh hơn, bền bỉ hơn.
 
-## Description
+---
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## 🚀 Engineering Excellence (Tại sao dự án này đặc biệt?)
 
-## Project setup
+Thay vì chỉ gọi API đơn thuần, PACELY được xây dựng với tư duy giải quyết các bài toán thực tế của một hệ thống Production:
 
+### 🧠 1. Hierarchical Memory Architecture
+Chúng tôi triển khai cấu trúc bộ nhớ 3 tầng cho AI Coach, đảm bảo chatbot luôn "nhớ" đúng ngữ cảnh mà không làm bùng nổ chi phí Token:
+-   **Short-term (In-context):** 10 tin nhắn gần nhất để giữ mạch hội thoại tức thời.
+-   **Mid-term (Rolling Summary):** Tự động tóm tắt nội dung hội thoại sau mỗi 10 lượt, nhúng trực tiếp vào System Prompt để AI luôn nhớ mục tiêu dài hạn của người dùng.
+-   **Cross-session (On-demand Tools):** Sử dụng **Function Calling** để AI chủ động truy xuất Profile, Lịch sử tập luyện và Nhật ký sức khỏe khi cần.
+
+### ⚖️ 2. Multi-Key Load Balancer (Round Robin)
+Để vượt qua giới hạn Rate Limit của các gói AI miễn phí và đảm bảo độ tin cậy 24/7:
+-   Hệ thống quản lý hàng đợi API Key thông minh.
+-   Tự động phát hiện Key bị lỗi/hết hạn và xoay vòng (Failover) sang Key khác ngay lập tức.
+-   Theo dõi chi tiết Token Usage theo từng người dùng.
+
+### 🌊 3. Chunked Response Streaming
+Trải nghiệm Chat cao cấp với phản hồi dạng Stream (giống ChatGPT/Gemini). Văn bản hiển thị theo từng khối (chunk) mượt mà với hiệu ứng **Fade-in Animation**, mang lại cảm giác sống động và giảm bớt thời gian chờ đợi tâm lý cho người dùng.
+
+### 📱 4. Cross-Platform Responsive UI
+Giao diện được thiết kế theo ngôn ngữ **PACELY Design System**:
+-   **Desktop:** Sidebar hiện đại, tối ưu không gian làm việc.
+-   **Mobile:** Bottom Navigation chuẩn App di động (như Strava), thao tác một tay dễ dàng.
+-   **Safe Areas:** Xử lý hoàn hảo khoảng trống StatusBar trên Android (Notch/Punch-hole).
+-   **Theme System:** Hỗ trợ Light/Dark/System theme với hiệu ứng chuyển màu mượt mà.
+
+---
+
+## 🛠 Tech Stack
+
+| Thành phần | Công nghệ |
+| --- | --- |
+| **Frontend** | React 19, TypeScript, Tailwind CSS, TanStack Query, Recharts, Zustand |
+| **Backend** | NestJS 11, Node.js, RxJS (SSE for AI Status) |
+| **Database** | PostgreSQL + Prisma ORM |
+| **AI Engine** | Google Gemini 1.5 Pro/Flash |
+| **Integrations** | Strava OAuth2 API, Capacitor (for Android support) |
+| **Security** | AES-256-GCM Token Encryption, JWT Authentication |
+
+---
+
+## 📖 Key Features
+
+-   **Dashboard Intel:** Trang chủ là báo cáo hiệu suất tự động tạo bởi AI.
+-   **Automatic Sync:** Đồng bộ buổi tập từ Strava chỉ với một chạm.
+-   **Daily Journal:** Lưu lại cảm nhận (ăn uống, chấn thương, tâm trạng) để AI có thêm dữ liệu phân tích sâu.
+-   **AI Partner:** Chat trực tiếp với cộng sự AI để lập kế hoạch tập luyện hoặc hỏi về thông số buổi chạy.
+-   **Dark Mode:** Giao diện tối chuyên nghiệp, tiết kiệm pin và dịu mắt khi sử dụng ban đêm.
+
+---
+
+## 🏗 Installation
+
+### Prerequisites
+- Node.js 20+
+- PostgreSQL
+- Strava API Client ID & Secret
+- Gemini API Key(s)
+
+### Backend Setup
 ```bash
-$ npm install
+cd backend
+npm install
+npx prisma db push
+npm run start:dev
 ```
 
-## Compile and run the project
-
+### Frontend Setup
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+cd frontend
+npm install
+npm start
 ```
 
-## Run tests
+---
 
-```bash
-# unit tests
-$ npm run test
+## 🤝 Contact
+**Dang M. Phong** - [dangminhphong912@gmail.com]
 
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
-```
-
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+*Dự án được xây dựng với tâm huyết dành cho cộng đồng chạy bộ và những người yêu công nghệ.*
