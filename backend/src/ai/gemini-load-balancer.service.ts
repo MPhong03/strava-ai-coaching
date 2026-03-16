@@ -11,12 +11,21 @@ export interface SelectedKey {
 export class GeminiLoadBalancer {
   constructor(private prisma: PrismaService) {}
 
-  async getBestKey(userId: bigint): Promise<SelectedKey> {
+  async getBestKey(
+    userId: bigint,
+    modelName?: string,
+  ): Promise<SelectedKey> {
+    const whereClause: any = { is_active: true, status: 'HEALTHY' };
+
+    // If a specific model is requested, we might want to ensure the key can access it,
+    // but Gemini keys usually have access to all public models.
+    // For now, we'll just filter by basic health and use the modelName in the actual AI call later.
+
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: {
         geminiApiKeys: {
-          where: { is_active: true, status: 'HEALTHY' },
+          where: whereClause,
           orderBy: { last_used_at: 'asc' },
         },
       },
@@ -72,23 +81,30 @@ export class GeminiLoadBalancer {
   }
 
   async reportError(keyId: bigint, error: any) {
-    const status =
-      error.message?.includes('429') ||
-      error.message?.includes('Quota exceeded')
-        ? 'RATE_LIMITED'
-        : 'FAILED';
+    const errorMessage = error.message || 'Unknown error';
+    const isRateLimit =
+      errorMessage.includes('429') ||
+      errorMessage.includes('Quota exceeded') ||
+      errorMessage.includes('Rate limit');
+
+    const status = isRateLimit ? 'RATE_LIMITED' : 'FAILED';
 
     if (status === 'RATE_LIMITED') {
       await this.prisma.geminiApiKey.update({
         where: { id: keyId },
-        data: { status: 'RATE_LIMITED', last_used_at: new Date() },
+        data: {
+          status: 'RATE_LIMITED',
+          last_used_at: new Date(),
+          last_error: errorMessage,
+        },
       });
     } else {
       await this.prisma.geminiApiKey.update({
         where: { id: keyId },
         data: {
           error_count: { increment: 1 },
-          status: { set: 'FAILED' }, // Tạm thời đánh dấu FAILED để kiểm tra lại sau
+          status: 'FAILED',
+          last_error: errorMessage,
         },
       });
     }

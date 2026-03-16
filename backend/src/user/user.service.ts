@@ -1,10 +1,14 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { EncryptionUtil } from '../common/utils/encryption.util';
+import { GeminiApiService } from '../ai/gemini-api.service';
 
 @Injectable()
 export class UserService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private geminiApiService: GeminiApiService,
+  ) {}
 
   async getProfile(userId: bigint) {
     const user = await this.prisma.user.findUnique({
@@ -23,6 +27,7 @@ export class UserService {
             id: true,
             key: true,
             status: true,
+            last_error: true,
             is_active: true,
             error_count: true,
             last_used_at: true,
@@ -74,6 +79,62 @@ export class UserService {
     return this.prisma.geminiApiKey.delete({
       where: { id: keyId, user_id: userId },
     });
+  }
+
+  async testGeminiKey(userId: bigint, keyId: bigint, modelName?: string) {
+    const keyRecord = await this.prisma.geminiApiKey.findUnique({
+      where: { id: keyId, user_id: userId },
+    });
+
+    if (!keyRecord) {
+      throw new NotFoundException('API Key not found');
+    }
+
+    const encryptionKey = process.env.ENCRYPTION_KEY!;
+    const decryptedKey = EncryptionUtil.decrypt(keyRecord.key, encryptionKey);
+
+    try {
+      await this.geminiApiService.testConnection(decryptedKey, modelName);
+
+      await this.prisma.geminiApiKey.update({
+        where: { id: keyId },
+        data: {
+          status: 'HEALTHY',
+          last_error: null,
+          error_count: 0,
+        },
+      });
+
+      return { success: true, message: 'Connection successful' };
+    } catch (error: any) {
+      const errorMessage = error.message || 'Unknown error';
+
+      await this.prisma.geminiApiKey.update({
+        where: { id: keyId },
+        data: {
+          status: 'FAILED',
+          last_error: errorMessage,
+          error_count: { increment: 1 },
+        },
+      });
+
+      return { success: false, message: errorMessage };
+    }
+  }
+
+  async listModelsForKey(userId: bigint, keyId: bigint) {
+    const keyRecord = await this.prisma.geminiApiKey.findUnique({
+      where: { id: keyId, user_id: userId },
+    });
+
+    if (!keyRecord) {
+      throw new NotFoundException('API Key not found');
+    }
+
+    const encryptionKey = process.env.ENCRYPTION_KEY!;
+    const decryptedKey = EncryptionUtil.decrypt(keyRecord.key, encryptionKey);
+
+    return this.geminiApiService.listModels(decryptedKey);
   }
 
   async updateProfile(

@@ -164,11 +164,11 @@ const ActivityDetail: React.FC = () => {
       </div>
 
       {insightLoading ? (
-        <div className="py-20 bg-white dark:bg-gray-900 rounded-3xl text-center text-gray-400 font-black uppercase tracking-widest text-[10px]">Analyzing data...</div>
+        <div className="py-20 mb-10 bg-white dark:bg-gray-900 rounded-3xl text-center text-gray-400 font-black uppercase tracking-widest text-[10px]">Analyzing data...</div>
       ) : insight ? (
         <div className="mb-10"><InsightCard insight={insight} /></div>
       ) : (
-        <div className="py-20 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl text-center px-6">
+        <div className="py-20 mb-10 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl text-center px-6">
           <p className="text-gray-500 font-bold">Ready to analyze! Click the button above to get AI insights.</p>
         </div>
       )}

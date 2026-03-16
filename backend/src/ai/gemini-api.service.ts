@@ -74,4 +74,20 @@ export class GeminiApiService {
       model: 'gemini-3-flash-preview',
     };
   }
+
+  async testConnection(apiKey: string, modelName?: string) {
+    const genAI = this.getClient(apiKey);
+    const model = genAI.getGenerativeModel({
+      model: modelName || 'gemini-3-flash-preview',
+      generationConfig: { maxOutputTokens: 5 },
+    });
+    const result = await model.generateContent('ping');
+    return result.response.text();
+  }
+
+  async listModels(apiKey: string) {
+    const genAI = this.getClient(apiKey);
+    const result = await genAI.listModels();
+    return result.models;
+  }
 }

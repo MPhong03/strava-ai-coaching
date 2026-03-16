@@ -41,7 +41,7 @@ export class ChatController {
   @Post('message')
   async sendMessage(
     @Request() req: any,
-    @Body() body: { sessionId: string; message: string },
+    @Body() body: { sessionId: string; message: string; model?: string },
     @Res() res: Response,
   ) {
     const userId = BigInt(req.user.userId);
@@ -58,6 +58,7 @@ export class ChatController {
         (chunk) => {
           res.write(chunk); // Gửi từng phần về client
         },
+        body.model,
       );
       res.end(); // Kết thúc stream
     } catch (error) {

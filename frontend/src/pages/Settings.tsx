@@ -10,13 +10,15 @@ interface SettingsState {
   partnerName: string;
   partnerPersona: string;
   roundRobin: boolean;
+  selectedModelForTest: Record<string, string>; // keyId -> modelName
 }
 
 type SettingsAction = 
   | { type: 'SET_ALL', payload: any }
   | { type: 'SET_GEMINI_KEY_INPUT', payload: string }
   | { type: 'SET_PARTNER_INFO', payload: { name: string, persona: string } }
-  | { type: 'SET_ROUND_ROBIN', payload: boolean };
+  | { type: 'SET_ROUND_ROBIN', payload: boolean }
+  | { type: 'SET_MODEL_FOR_TEST', payload: { keyId: string, model: string } };
 
 function settingsReducer(state: SettingsState, action: SettingsAction): SettingsState {
   switch (action.type) {
@@ -24,6 +26,7 @@ function settingsReducer(state: SettingsState, action: SettingsAction): Settings
     case 'SET_GEMINI_KEY_INPUT': return { ...state, geminiKeyInput: action.payload };
     case 'SET_PARTNER_INFO': return { ...state, partnerName: action.payload.name, partnerPersona: action.payload.persona };
     case 'SET_ROUND_ROBIN': return { ...state, roundRobin: action.payload };
+    case 'SET_MODEL_FOR_TEST': return { ...state, selectedModelForTest: { ...state.selectedModelForTest, [action.payload.keyId]: action.payload.model } };
     default: return state;
   }
 }
@@ -34,7 +37,7 @@ const Settings: React.FC = () => {
   const queryClient = useQueryClient();
   
   const [state, dispatch] = useReducer(settingsReducer, {
-    geminiKeyInput: '', partnerName: '', partnerPersona: '', roundRobin: false
+    geminiKeyInput: '', partnerName: '', partnerPersona: '', roundRobin: false, selectedModelForTest: {}
   });
 
   const { data: profileData, isLoading } = useQuery({
@@ -68,6 +71,44 @@ const Settings: React.FC = () => {
   const deleteGeminiKeyMutation = useMutation({
     mutationFn: async (id: string) => { await axios.delete(`${apiUrl}/user/gemini-key/${id}`, { headers: { Authorization: `Bearer ${token}` } }); },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['user-profile'] }); toast.success('API Key removed'); }
+  });
+
+  const testGeminiKeyMutation = useMutation({
+    mutationFn: async ({ id, model }: { id: string, model?: string }) => {
+      const response = await axios.post(`${apiUrl}/user/test-gemini-key/${id}`, { model }, { headers: { Authorization: `Bearer ${token}` } });
+      return response.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['user-profile'] });
+      if (data.data.success) {
+        toast.success('Connection successful!');
+      } else {
+        toast.error(`Connection failed: ${data.data.message}`);
+      }
+    },
+    onError: (error: any) => {
+      toast.error(`Error: ${error.response?.data?.message || error.message}`);
+    }
+  });
+
+  const [availableModelsForKey, setAvailableModelsForKey] = React.useState<Record<string, any[]>>({});
+
+  const viewModelsMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await axios.get(`${apiUrl}/user/gemini-key/${id}/models`, { headers: { Authorization: `Bearer ${token}` } });
+      return { id, models: response.data.data };
+    },
+    onSuccess: ({ id, models }) => {
+      setAvailableModelsForKey(prev => ({ ...prev, [id]: models }));
+      if (!state.selectedModelForTest[id] && models.length > 0) {
+        dispatch({ type: 'SET_MODEL_FOR_TEST', payload: { keyId: id, model: models[0].name } });
+      }
+      const modelList = models.map((m: any) => `- ${m.displayName} (${m.name})`).join('\n');
+      toast.success(`Fetched ${models.length} models for this key.`);
+    },
+    onError: (error: any) => {
+      toast.error(`Failed to fetch models: ${error.message}`);
+    }
   });
 
   const toggleRoundRobinMutation = useMutation({
@@ -149,12 +190,52 @@ const Settings: React.FC = () => {
           
           <div className="space-y-2 mb-6">
             {profileData?.geminiApiKeys?.map((k: any) => (
-              <div key={k.id} className="flex items-center justify-between bg-gray-50 dark:bg-black p-3 rounded-xl border border-gray-100 dark:border-gray-800">
-                <div className="flex items-center gap-3 min-w-0">
-                  <span className={`shrink-0 w-2 h-2 rounded-full ${k.status === 'HEALTHY' ? 'bg-green-500' : 'bg-red-500'}`}></span>
-                  <span className="text-[10px] font-mono text-gray-500 truncate">••••••••{k.key.slice(-4)}</span>
+              <div key={k.id} className="bg-gray-50 dark:bg-black p-3 rounded-xl border border-gray-100 dark:border-gray-800">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className={`shrink-0 w-2 h-2 rounded-full ${k.status === 'HEALTHY' ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                    <span className="text-[10px] font-mono text-gray-500 truncate">••••••••{k.key.slice(-4)}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={() => viewModelsMutation.mutate(k.id)} 
+                      disabled={viewModelsMutation.isPending}
+                      className="text-[9px] font-black uppercase tracking-widest text-blue-500 hover:text-blue-600 disabled:opacity-50"
+                    >
+                      {viewModelsMutation.isPending && viewModelsMutation.variables === k.id ? 'Loading...' : 'Models'}
+                    </button>
+                    <button 
+                      onClick={() => testGeminiKeyMutation.mutate({ id: k.id, model: state.selectedModelForTest[k.id] })} 
+                      disabled={testGeminiKeyMutation.isPending}
+                      className="text-[9px] font-black uppercase tracking-widest text-orange-500 hover:text-orange-600 disabled:opacity-50"
+                    >
+                      {testGeminiKeyMutation.isPending && testGeminiKeyMutation.variables?.id === k.id ? 'Testing...' : 'Test'}
+                    </button>
+                    <button onClick={() => deleteGeminiKeyMutation.mutate(k.id)} className="text-gray-400 hover:text-red-500 p-1">✕</button>
+                  </div>
                 </div>
-                <button onClick={() => deleteGeminiKeyMutation.mutate(k.id)} className="text-gray-400 hover:text-red-500 p-1">✕</button>
+
+                {availableModelsForKey[k.id] && (
+                  <div className="mb-2">
+                    <select
+                      value={state.selectedModelForTest[k.id] || ''}
+                      onChange={(e) => dispatch({ type: 'SET_MODEL_FOR_TEST', payload: { keyId: k.id, model: e.target.value } })}
+                      className="w-full bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-lg px-2 py-1 text-[10px] font-bold text-gray-600 dark:text-gray-300 outline-none focus:ring-1 focus:ring-orange-500"
+                    >
+                      {availableModelsForKey[k.id].map((m: any) => (
+                        <option key={m.name} value={m.name}>
+                          {m.displayName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {k.last_error && (
+                  <div className="text-[9px] text-red-500 font-medium bg-red-500/5 p-2 rounded-lg mt-2 border border-red-500/10 italic">
+                    {k.last_error}
+                  </div>
+                )}
               </div>
             ))}
           </div>

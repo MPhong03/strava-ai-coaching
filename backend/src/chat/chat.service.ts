@@ -60,6 +60,7 @@ export class ChatService {
     sessionId: bigint,
     userMessage: string,
     onChunk: (text: string) => void,
+    modelName?: string,
   ) {
     this.logger.log(
       `[Session ${sessionId}] Processing new message from User ${userId}`,
@@ -127,11 +128,12 @@ export class ChatService {
     let lastError: any = null;
 
     while (retryCount < maxRetries) {
-      const selectedKey = await this.loadBalancer.getBestKey(userId);
+      const selectedKey = await this.loadBalancer.getBestKey(userId, modelName);
+      const activeModel = modelName || 'gemini-3-flash-preview';
       try {
         const genAI = (this.geminiApi as any).getClient(selectedKey.key);
         const model = genAI.getGenerativeModel({
-          model: 'gemini-3-flash-preview',
+          model: activeModel,
           systemInstruction,
         });
 
@@ -219,7 +221,7 @@ export class ChatService {
             data: {
               user_id: userId,
               type: 'CHAT',
-              model_name: 'gemini-3-flash-preview',
+              model_name: activeModel,
               prompt_tokens:
                 currentResponse.usageMetadata.promptTokenCount || 0,
               candidate_tokens:

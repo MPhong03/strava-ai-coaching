@@ -40,6 +40,22 @@ export class UserController {
     return this.userService.deleteGeminiKey(userId, BigInt(id));
   }
 
+  @Post('test-gemini-key/:id')
+  async testGeminiKey(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body('model') modelName?: string,
+  ) {
+    const userId = BigInt(req.user.userId);
+    return this.userService.testGeminiKey(userId, BigInt(id), modelName);
+  }
+
+  @Get('gemini-key/:id/models')
+  async listGeminiKeyModels(@Request() req: any, @Param('id') id: string) {
+    const userId = BigInt(req.user.userId);
+    return this.userService.listModelsForKey(userId, BigInt(id));
+  }
+
   @Post('round-robin')
   async toggleRoundRobin(
     @Request() req: any,

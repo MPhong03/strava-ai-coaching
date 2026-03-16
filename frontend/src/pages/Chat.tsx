@@ -20,6 +20,7 @@ const Chat: React.FC = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
   const queryClient = useQueryClient();
   const [input, setInput] = useState('');
+  const [selectedModel, setSelectedModel] = useState('gemini-3-flash-preview');
   const [aiStatus, setAiStatus] = useState<{ status: string, toolName?: string }>({ status: 'idle' });
   const [streamingContent, setStreamingContent] = useState(''); // Nội dung AI đang stream về
   const [optimisticUserMessage, setOptimisticUserMessage] = useState<string | null>(null); // Tin nhắn user gửi đi
@@ -33,6 +34,34 @@ const Chat: React.FC = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       return response.data.data;
+    },
+    enabled: !!token
+  });
+
+  // Fetch available models from all healthy keys
+  const { data: profileData } = useQuery({
+    queryKey: ['user-profile-models'],
+    queryFn: async () => {
+      const response = await axios.get(`${apiUrl}/user/profile`, { headers: { Authorization: `Bearer ${token}` } });
+      const healthyKeys = response.data.data.geminiApiKeys.filter((k: any) => k.status === 'HEALTHY');
+      
+      const allModels: any[] = [];
+      const seenModels = new Set();
+
+      for (const key of healthyKeys) {
+        try {
+          const modelsRes = await axios.get(`${apiUrl}/user/gemini-key/${key.id}/models`, { headers: { Authorization: `Bearer ${token}` } });
+          for (const m of modelsRes.data.data) {
+            if (!seenModels.has(m.name)) {
+              seenModels.add(m.name);
+              allModels.push(m);
+            }
+          }
+        } catch (e) {
+          console.error(`Failed to fetch models for key ${key.id}`);
+        }
+      }
+      return allModels;
     },
     enabled: !!token
   });
@@ -92,7 +121,11 @@ const Chat: React.FC = () => {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ sessionId: session.id, message: userMessage })
+        body: JSON.stringify({ 
+          sessionId: session.id, 
+          message: userMessage,
+          model: selectedModel 
+        })
       });
 
       if (!response.ok) throw new Error('Failed to send message');
@@ -171,9 +204,24 @@ const Chat: React.FC = () => {
           </Link>
           <h1 className="text-lg font-black text-gray-800 dark:text-white uppercase tracking-tighter italic">AI Partner</h1>
         </div>
-        <div className="flex items-center gap-2 bg-green-50 dark:bg-green-900/20 px-3 py-1 rounded-full border border-green-100 dark:border-green-900/20">
-          <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
-          <span className="text-[10px] font-black text-green-600 dark:text-green-400 uppercase tracking-widest">Active</span>
+        <div className="flex items-center gap-3">
+          {profileData && profileData.length > 0 && (
+            <select
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+              className="bg-gray-100 dark:bg-gray-800 border-none rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest text-gray-600 dark:text-gray-400 outline-none focus:ring-1 focus:ring-orange-500"
+            >
+              {profileData.map((m: any) => (
+                <option key={m.name} value={m.name}>
+                  {m.displayName.replace('Gemini ', '')}
+                </option>
+              ))}
+            </select>
+          )}
+          <div className="flex items-center gap-2 bg-green-50 dark:bg-green-900/20 px-3 py-1 rounded-full border border-green-100 dark:border-green-900/20">
+            <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+            <span className="text-[10px] font-black text-green-600 dark:text-green-400 uppercase tracking-widest">Active</span>
+          </div>
         </div>
       </nav>
 
