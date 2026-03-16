@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import axios from 'axios';
 
 @Injectable()
 export class GeminiApiService {
@@ -86,8 +87,8 @@ export class GeminiApiService {
   }
 
   async listModels(apiKey: string) {
-    const genAI = this.getClient(apiKey) as any;
-    const result = await genAI.listModels();
-    return result.models;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
+    const response = await axios.get(url);
+    return response.data.models;
   }
 }
