@@ -86,7 +86,7 @@ export class GeminiApiService {
   }
 
   async listModels(apiKey: string) {
-    const genAI = this.getClient(apiKey);
+    const genAI = this.getClient(apiKey) as any;
     const result = await genAI.listModels();
     return result.models;
   }
