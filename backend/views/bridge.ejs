@@ -25,7 +25,7 @@
 
         <div id="web-actions" style="display: none;">
             <p style="font-size: 0.875rem; color: #6b7280;">Returning you to the web dashboard...</p>
-            <a href="<%= frontendUrl %>/auth/strava/callback?code=<%= code %>" class="btn">Continue on Web</a>
+            <a href="<%= frontendUrl %>/auth/strava/bridge?code=<%= code %>" class="btn">Continue on Web</a>
         </div>
     </div>
 
@@ -48,7 +48,7 @@
             
             // Tự động quay lại Web Frontend sau 500ms
             setTimeout(function() {
-                window.location.href = frontendUrl + "/auth/strava/callback?code=" + code;
+                window.location.href = frontendUrl + "/auth/strava/bridge?code=" + code;
             }, 500);
         }
     </script>

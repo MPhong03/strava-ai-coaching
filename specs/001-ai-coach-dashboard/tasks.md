@@ -40,7 +40,7 @@ graph TD
 
 - [X] T010 [P] [US1] Create User and StravaToken models in `/backend/prisma/schema.prisma`
 - [X] T011 [US1] Implement StravaAuthService for token exchange in `/backend/src/auth/strava-auth.service.ts`
-- [X] T012 [US1] Implement `/auth/strava/callback` endpoint in `/backend/src/auth/auth.controller.ts`
+- [X] T012 [US1] Implement `/auth/strava/bridge` endpoint in `/backend/src/auth/auth.controller.ts`
 - [X] T013 [P] [US1] Create Login page with Strava button in `/frontend/src/pages/Login.tsx`
 - [X] T014 [US1] Implement JWT strategy for authenticated requests in `/backend/src/auth/jwt.strategy.ts`
 

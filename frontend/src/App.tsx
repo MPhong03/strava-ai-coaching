@@ -127,7 +127,7 @@ const AppContent: React.FC = () => {
     CapacitorApp.addListener('appUrlOpen', (data: any) => {
       const url = new URL(data.url);
       const code = url.searchParams.get('code');
-      if (code) { Browser.close(); navigate(`/auth/strava/callback?code=${code}`); }
+      if (code) { Browser.close(); navigate(`/auth/strava/bridge?code=${code}`); }
     });
     return () => {
       CapacitorApp.removeAllListeners();
@@ -138,7 +138,7 @@ const AppContent: React.FC = () => {
     <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-black font-black uppercase tracking-widest text-[10px] text-gray-400 italic">Loading Pacely...</div>}>
       <Routes>
         <Route path="/login" element={<Login />} />
-        <Route path="/auth/strava/callback" element={<StravaCallback />} />
+        <Route path="/auth/strava/bridge" element={<StravaCallback />} />
         <Route element={<PrivateRoute><Layout /></PrivateRoute>}>
           <Route path="/" element={<Reports />} />
           <Route path="/activities" element={<Dashboard />} />
