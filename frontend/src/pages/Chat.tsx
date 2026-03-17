@@ -239,14 +239,14 @@ const Chat: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          {profileData && profileData.length > 0 && (
+          {profileData?.models && profileData.models.length > 0 && (
             <div className="relative max-w-[100px] sm:max-w-[180px]">
               <select
                 value={selectedModel}
                 onChange={(e) => setSelectedModel(e.target.value)}
                 className="appearance-none w-full bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-lg pl-2 pr-6 py-1 text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-gray-600 dark:text-gray-400 outline-none focus:ring-1 focus:ring-orange-500/50 transition-all cursor-pointer truncate"
               >
-                {profileData.map((m: any) => (
+                {profileData.models.map((m: any) => (
                   <option key={m.name} value={m.name}>
                     {m.displayName.replace('Gemini ', '')}
                   </option>
