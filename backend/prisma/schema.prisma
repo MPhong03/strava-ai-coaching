@@ -16,6 +16,7 @@ model User {
   profile_picture    String?
   preferences        String?             @db.Text
   round_robin_enabled Boolean            @default(false)
+  selected_model     String?             @default("gemini-3-flash-preview")
   partner_name       String?             @default("AI Partner")
   partner_persona    String?             @db.Text
   created_at         DateTime            @default(now())
@@ -30,17 +31,18 @@ model User {
 }
 
 model GeminiApiKey {
-  id           BigInt   @id @default(autoincrement())
+  id           BigInt        @id @default(autoincrement())
   user_id      BigInt
-  user         User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  key          String   @db.Text // Encrypted
-  is_active    Boolean  @default(true)
-  status       String   @default("HEALTHY") // HEALTHY, FAILED, RATE_LIMITED
-  last_error   String?  @db.Text
-  last_used_at DateTime @default(now())
-  error_count  Int      @default(0)
-  created_at   DateTime @default(now())
-  updated_at   DateTime @updatedAt
+  user         User          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  key          String        @db.Text // Encrypted
+  is_active    Boolean       @default(true)
+  status       String        @default("HEALTHY") // HEALTHY, FAILED, RATE_LIMITED
+  last_error   String?       @db.Text
+  last_used_at DateTime      @default(now())
+  error_count  Int           @default(0)
+  created_at   DateTime      @default(now())
+  updated_at   DateTime      @updatedAt
+  usages       GeminiUsage[]
 }
 
 model ChatSession {
@@ -64,15 +66,17 @@ model ChatMessage {
 }
 
 model GeminiUsage {
-  id               BigInt   @id @default(autoincrement())
+  id               BigInt        @id @default(autoincrement())
   user_id          BigInt
-  user             User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  type             String // 'ACTIVITY' hoặc 'REPORT'
+  user             User          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  key_id           BigInt?
+  apiKey           GeminiApiKey? @relation(fields: [key_id], references: [id], onDelete: SetNull)
+  type             String // 'ACTIVITY', 'REPORT' hoặc 'CHAT'
   model_name       String
   prompt_tokens    Int
   candidate_tokens Int
   total_tokens     Int
-  created_at       DateTime @default(now())
+  created_at       DateTime      @default(now())
 }
 
 model DailyJournal {

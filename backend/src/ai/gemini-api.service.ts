@@ -12,13 +12,15 @@ export class GeminiApiService {
     activityData: any,
     userPreferences?: any,
     apiKey?: string,
+    modelName?: string,
   ) {
     if (!apiKey) {
       throw new Error('Gemini API Key is required for this user.');
     }
 
+    const activeModel = modelName || 'gemini-3-flash-preview';
     const genAI = this.getClient(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-3-flash-preview' });
+    const model = genAI.getGenerativeModel({ model: activeModel });
 
     let profileContext = '';
     if (userPreferences) {
@@ -56,23 +58,24 @@ export class GeminiApiService {
     return {
       data: JSON.parse(response.text()),
       usage: response.usageMetadata,
-      model: 'gemini-3-flash-preview',
+      model: activeModel,
     };
   }
 
-  async generateText(prompt: string, apiKey?: string) {
+  async generateText(prompt: string, apiKey?: string, modelName?: string) {
     if (!apiKey) {
       throw new Error('Gemini API Key is required for this user.');
     }
 
+    const activeModel = modelName || 'gemini-3-flash-preview';
     const genAI = this.getClient(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-3-flash-preview' });
+    const model = genAI.getGenerativeModel({ model: activeModel });
     const result = await model.generateContent(prompt);
 
     return {
       text: result.response.text(),
       usage: result.response.usageMetadata,
-      model: 'gemini-3-flash-preview',
+      model: activeModel,
     };
   }
 

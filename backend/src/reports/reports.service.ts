@@ -38,7 +38,7 @@ export class ReportsService {
 
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { preferences: true },
+      select: { preferences: true, selected_model: true },
     });
 
     let report = await this.prisma.performanceReport.findUnique({
@@ -169,6 +169,7 @@ export class ReportsService {
       const aiResult = await this.geminiApi.generateText(
         prompt,
         selectedKey.key,
+        user?.selected_model || undefined,
       );
 
       await this.prisma.aiUsageLog.create({
@@ -178,6 +179,7 @@ export class ReportsService {
       await this.prisma.geminiUsage.create({
         data: {
           user_id: userId,
+          key_id: selectedKey.id,
           type: 'REPORT',
           model_name: aiResult.model,
           prompt_tokens: aiResult.usage?.promptTokenCount || 0,

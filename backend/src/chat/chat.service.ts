@@ -68,6 +68,12 @@ export class ChatService {
 
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
+      select: {
+        id: true,
+        partner_name: true,
+        partner_persona: true,
+        selected_model: true,
+      },
     });
 
     if (!user) {
@@ -128,8 +134,12 @@ export class ChatService {
     let lastError: any = null;
 
     while (retryCount < maxRetries) {
-      const selectedKey = await this.loadBalancer.getBestKey(userId, modelName);
-      const activeModel = modelName || 'gemini-3-flash-preview';
+      const activeModel =
+        modelName || user.selected_model || 'gemini-3-flash-preview';
+      const selectedKey = await this.loadBalancer.getBestKey(
+        userId,
+        activeModel,
+      );
       try {
         const genAI = (this.geminiApi as any).getClient(selectedKey.key);
         const model = genAI.getGenerativeModel({
@@ -220,6 +230,7 @@ export class ChatService {
           await this.prisma.geminiUsage.create({
             data: {
               user_id: userId,
+              key_id: selectedKey.id,
               type: 'CHAT',
               model_name: activeModel,
               prompt_tokens:
@@ -369,6 +380,21 @@ export class ChatService {
 
       const result = await model.generateContent(summaryPrompt);
       const summary = result.response.text();
+
+      if (result.response.usageMetadata) {
+        await this.prisma.geminiUsage.create({
+          data: {
+            user_id: userId,
+            key_id: selectedKey.id,
+            type: 'SUMMARIZE',
+            model_name: 'gemini-3-flash-preview',
+            prompt_tokens: result.response.usageMetadata.promptTokenCount || 0,
+            candidate_tokens:
+              result.response.usageMetadata.candidatesTokenCount || 0,
+            total_tokens: result.response.usageMetadata.totalTokenCount || 0,
+          },
+        });
+      }
 
       await this.prisma.chatSession.update({
         where: { id: sessionId },

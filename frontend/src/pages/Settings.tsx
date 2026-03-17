@@ -9,6 +9,7 @@ interface SettingsState {
   geminiKeyInput: string;
   partnerName: string;
   partnerPersona: string;
+  selectedModel: string;
   roundRobin: boolean;
   selectedModelForTest: Record<string, string>; // keyId -> modelName
 }
@@ -17,6 +18,7 @@ type SettingsAction =
   | { type: 'SET_ALL', payload: any }
   | { type: 'SET_GEMINI_KEY_INPUT', payload: string }
   | { type: 'SET_PARTNER_INFO', payload: { name: string, persona: string } }
+  | { type: 'SET_SELECTED_MODEL', payload: string }
   | { type: 'SET_ROUND_ROBIN', payload: boolean }
   | { type: 'SET_MODEL_FOR_TEST', payload: { keyId: string, model: string } };
 
@@ -25,6 +27,7 @@ function settingsReducer(state: SettingsState, action: SettingsAction): Settings
     case 'SET_ALL': return { ...state, ...action.payload };
     case 'SET_GEMINI_KEY_INPUT': return { ...state, geminiKeyInput: action.payload };
     case 'SET_PARTNER_INFO': return { ...state, partnerName: action.payload.name, partnerPersona: action.payload.persona };
+    case 'SET_SELECTED_MODEL': return { ...state, selectedModel: action.payload };
     case 'SET_ROUND_ROBIN': return { ...state, roundRobin: action.payload };
     case 'SET_MODEL_FOR_TEST': return { ...state, selectedModelForTest: { ...state.selectedModelForTest, [action.payload.keyId]: action.payload.model } };
     default: return state;
@@ -37,7 +40,7 @@ const Settings: React.FC = () => {
   const queryClient = useQueryClient();
   
   const [state, dispatch] = useReducer(settingsReducer, {
-    geminiKeyInput: '', partnerName: '', partnerPersona: '', roundRobin: false, selectedModelForTest: {}
+    geminiKeyInput: '', partnerName: '', partnerPersona: '', selectedModel: 'gemini-3-flash-preview', roundRobin: false, selectedModelForTest: {}
   });
 
   const { data: profileData, isLoading } = useQuery({
@@ -56,6 +59,7 @@ const Settings: React.FC = () => {
         payload: {
           partnerName: profileData.partner_name || 'AI Partner',
           partnerPersona: profileData.partner_persona || '',
+          selectedModel: profileData.selected_model || 'gemini-3-flash-preview',
           roundRobin: profileData.round_robin_enabled
         } 
       });
@@ -120,12 +124,24 @@ const Settings: React.FC = () => {
     mutationFn: async (payload: any) => {
       await axios.post(`${apiUrl}/user/profile-update`, {
         partner_name: payload.partnerName,
-        partner_persona: payload.partnerPersona
+        partner_persona: payload.partnerPersona,
+        selected_model: payload.selectedModel
       }, { headers: { Authorization: `Bearer ${token}` } });
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['user-profile'] }); toast.success('AI Partner updated!'); },
     onError: () => toast.error('Failed to update AI Partner')
   });
+
+  const [allAvailableModels, setAllAvailableModels] = React.useState<any[]>([]);
+  const firstHealthyKey = profileData?.geminiApiKeys?.find((k: any) => k.status === 'HEALTHY');
+
+  useEffect(() => {
+    if (firstHealthyKey && allAvailableModels.length === 0) {
+      axios.get(`${apiUrl}/user/gemini-key/${firstHealthyKey.id}/models`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(res => setAllAvailableModels(res.data.data))
+        .catch(err => console.error('Failed to fetch global models', err));
+    }
+  }, [firstHealthyKey, token, apiUrl, allAvailableModels.length]);
 
   if (isLoading && !profileData) return <div className="p-8 text-center text-gray-400 font-black uppercase tracking-widest text-[10px]">Loading Settings...</div>;
 
@@ -194,7 +210,12 @@ const Settings: React.FC = () => {
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-3 min-w-0">
                     <span className={`shrink-0 w-2 h-2 rounded-full ${k.status === 'HEALTHY' ? 'bg-green-500' : 'bg-red-500'}`}></span>
-                    <span className="text-[10px] font-mono text-gray-500 truncate">••••••••{k.key.slice(-4)}</span>
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-mono text-gray-500 truncate">{k.key}</p>
+                      <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mt-0.5">
+                        {k.usage_count} requests • {k.total_tokens?.toLocaleString()} tokens
+                      </p>
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <button 
@@ -262,6 +283,30 @@ const Settings: React.FC = () => {
               <label className="block text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 ml-1">AI Persona / Voice Style</label>
               <textarea value={state.partnerPersona} onChange={(e) => dispatch({ type: 'SET_PARTNER_INFO', payload: { name: state.partnerName, persona: e.target.value } })} className="w-full bg-gray-50 dark:bg-black border-none rounded-xl focus:ring-2 focus:ring-orange-500 px-4 py-3 text-sm dark:text-white h-28 font-medium leading-relaxed" />
             </div>
+
+            <div>
+              <label className="block text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 ml-1">Global AI Model (All Keys)</label>
+              <div className="relative">
+                <select 
+                  value={state.selectedModel} 
+                  onChange={(e) => dispatch({ type: 'SET_SELECTED_MODEL', payload: e.target.value })} 
+                  className="w-full bg-gray-50 dark:bg-black border-none rounded-xl focus:ring-2 focus:ring-orange-500 px-4 py-3 text-sm dark:text-white font-bold appearance-none cursor-pointer"
+                >
+                  {allAvailableModels.length > 0 ? (
+                    allAvailableModels.map((m: any) => (
+                      <option key={m.name} value={m.name}>{m.displayName}</option>
+                    ))
+                  ) : (
+                    <option value="gemini-3-flash-preview">Gemini 3 Flash Preview (Default)</option>
+                  )}
+                </select>
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                </div>
+              </div>
+              <p className="text-[8px] text-gray-400 mt-2 ml-1 uppercase font-bold tracking-tight">This model will be used across all your API keys for every task.</p>
+            </div>
+
             <button
               onClick={() => saveAiSettingsMutation.mutate(state)}
               disabled={saveAiSettingsMutation.isPending}

@@ -20,6 +20,7 @@ export class UserService {
         profile_picture: true,
         preferences: true,
         round_robin_enabled: true,
+        selected_model: true,
         partner_name: true,
         partner_persona: true,
         geminiApiKeys: {
@@ -31,17 +32,33 @@ export class UserService {
             is_active: true,
             error_count: true,
             last_used_at: true,
+            _count: {
+              select: { usages: true },
+            },
           },
         },
       },
     });
 
     if (user) {
-      // Mask all API keys
-      user.geminiApiKeys = user.geminiApiKeys.map((k) => ({
-        ...k,
-        key: '********' + k.key.slice(-4),
-      })) as any;
+      // Fetch total tokens for each key
+      const keysWithUsage = await Promise.all(
+        user.geminiApiKeys.map(async (k) => {
+          const usageSum = await this.prisma.geminiUsage.aggregate({
+            where: { key_id: k.id },
+            _sum: { total_tokens: true },
+          });
+
+          return {
+            ...k,
+            key: '********' + k.key.slice(-4),
+            total_tokens: usageSum._sum.total_tokens || 0,
+            usage_count: k._count.usages,
+          };
+        }),
+      );
+
+      (user as any).geminiApiKeys = keysWithUsage;
     }
 
     return user;
@@ -139,13 +156,18 @@ export class UserService {
 
   async updateProfile(
     userId: bigint,
-    data: { partner_name?: string; partner_persona?: string },
+    data: {
+      partner_name?: string;
+      partner_persona?: string;
+      selected_model?: string;
+    },
   ) {
     return this.prisma.user.update({
       where: { id: userId },
       data: {
         partner_name: data.partner_name,
         partner_persona: data.partner_persona,
+        selected_model: data.selected_model,
       },
     });
   }

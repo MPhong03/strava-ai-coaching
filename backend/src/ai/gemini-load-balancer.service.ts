@@ -11,10 +11,7 @@ export interface SelectedKey {
 export class GeminiLoadBalancer {
   constructor(private prisma: PrismaService) {}
 
-  async getBestKey(
-    userId: bigint,
-    modelName?: string,
-  ): Promise<SelectedKey> {
+  async getBestKey(userId: bigint, modelName?: string): Promise<SelectedKey> {
     const whereClause: any = { is_active: true, status: 'HEALTHY' };
 
     // If a specific model is requested, we might want to ensure the key can access it,

@@ -16,7 +16,7 @@ export class InsightService {
       where: { id: activityId, user_id: userId },
       include: {
         insight: true,
-        user: { select: { preferences: true } },
+        user: { select: { preferences: true, selected_model: true } },
       },
     });
 
@@ -81,6 +81,7 @@ export class InsightService {
         context,
         preferences,
         selectedKey.key,
+        activity.user.selected_model || undefined,
       );
 
       // Log Usage
@@ -95,6 +96,7 @@ export class InsightService {
       await this.prisma.geminiUsage.create({
         data: {
           user_id: userId,
+          key_id: selectedKey.id,
           type: 'ACTIVITY',
           model_name: aiResult.model,
           prompt_tokens: aiResult.usage?.promptTokenCount || 0,
